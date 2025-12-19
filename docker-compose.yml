@@ -1,0 +1,69 @@
+version: '3.8'
+
+# Claude Code Docker Configuration
+# Чистое решение с правильным volume mapping
+
+services:
+  claude:
+    image: ${CLAUDE_IMAGE:-anthropic/claude-code:latest}
+    container_name: claude-code
+    volumes:
+      # Главная директория Claude для унифицированной истории чатов
+      - ${CLAUDE_HOME:-~/.claude}:/root/.claude:rw
+      # Рабочая директория проекта
+      - .:/workspace:rw
+      # SSH конфигурация для git operations
+      - ~/.ssh:/root/.ssh:ro
+      - ~/.gitconfig:/root/.gitconfig:ro
+    working_dir: /workspace
+    environment:
+      # Указываем Claude использовать нашу директорию
+      - CLAUDE_CONFIG_DIR=/root/.claude
+      # Дополнительные переменные окружения
+      - TERM=xterm-256color
+      - LANG=C.UTF-8
+    stdin_open: true
+    tty: true
+    # Health check
+    healthcheck:
+      test: ["CMD", "claude", "--version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    # Логирование
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # Ресурсы
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    networks:
+      - claude-network
+
+  # Сервис для тестирования
+  claude-test:
+    extends: claude
+    container_name: claude-test
+    command: ["--version"]
+    depends_on:
+      claude:
+        condition: service_healthy
+    profiles:
+      - testing
+
+# Сеть
+networks:
+  claude-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.0.0/16
