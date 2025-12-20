@@ -74,7 +74,7 @@ Host Authentication Storage:
 
 ```json
 {
-  "userID": "09c8f325b1fb638d69a039724a1320fc060b3a498be31c499abf616e023cc4fa",
+  "userID": "SAFE_USER_ID_UUID",
   "lastSessionId": "d2603883-e1ef-4e76-aa63-5cbd75c4d7c2",
   // Additional configuration...
 }
