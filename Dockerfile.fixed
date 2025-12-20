@@ -1,0 +1,64 @@
+# Claude Code Docker Image - FIXED VERSION
+# Based on Node.js with Claude Code CLI installed globally
+FROM node:22-alpine
+
+# Install system dependencies required for Claude Code
+RUN apk add --no-cache \
+    git \
+    openssh-client \
+    curl \
+    bash \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/cache/apk/*
+
+# Explicitly set PATH to ensure npm global binaries are found
+ENV PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+# Install Claude Code CLI globally with verification
+RUN set -ex && \
+    npm install -g @anthropic-ai/claude-code@latest && \
+    # Verify installation
+    ls -la /usr/local/bin/claude && \
+    # Ensure execute permissions
+    chmod +x /usr/local/bin/claude && \
+    # Check if binary is properly linked
+    ls -la /usr/local/lib/node_modules/@anthropic-ai/claude-code/ && \
+    # Test the installation
+    claude --version && \
+    # Clean npm cache
+    npm cache clean --force
+
+# Set working directory
+WORKDIR /workspace
+
+# Create necessary directories with proper permissions
+RUN mkdir -p /root/.claude && \
+    chmod 755 /root/.claude && \
+    mkdir -p /root/.ssh && \
+    chmod 700 /root/.ssh
+
+# Configure git for proper operation
+RUN git config --global user.email "claude@docker.local" && \
+    git config --global user.name "Claude Docker"
+
+# Volume mounts for persistent data
+VOLUME ["/root/.claude", "/workspace", "/root/.ssh"]
+
+# Default command - ensure we use the full path
+CMD ["/usr/local/bin/claude"]
+
+# Environment variables
+ENV NODE_ENV=production
+ENV CLAUDE_CONFIG_DIR=/root/.claude
+
+# Health check to ensure claude is working
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD /usr/local/bin/claude --version || exit 1
+
+# Labels for metadata
+LABEL maintainer="claude-code-docker-setup"
+LABEL description="Claude Code CLI with all dependencies - FIXED"
+LABEL version="1.0.1"
+LABEL source="built from @anthropic-ai/claude-code npm package"

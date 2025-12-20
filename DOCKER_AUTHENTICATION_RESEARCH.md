@@ -89,11 +89,11 @@ Host Authentication Storage:
 
 ```json
 {
-  "ANTHROPIC_AUTH_TOKEN": "5190eb846b5b4d74b84ecda6c9947762.cNNOPku5biYnw8yD",
+  "ANTHROPIC_AUTH_TOKEN": "YOUR_API_TOKEN_HERE",
   "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
   "ANTHROPIC_MODEL": "glm-4.6",
   "env": {
-    "ANTHROPIC_AUTH_TOKEN": "5190eb846b5b4d74b84ecda6c9947762.cNNOPku5biYnw8yD",
+    "ANTHROPIC_AUTH_TOKEN": "YOUR_API_TOKEN_HERE",
     "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
     "ANTHROPIC_MODEL": "glm-4.6",
     "API_TIMEOUT_MS": "3000000"
