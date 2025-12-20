@@ -1,0 +1,297 @@
+# Claude Code - Security Critical Files
+# NEVER commit authentication credentials, tokens, or user data
+.claude/.credentials.json
+.claude/settings.json
+.claude/.claude.json
+.claude/.claude.json.backup
+claude.bak/
+.claude/history.jsonl
+.claude/session-env/
+.claude/shell-snapshots/
+.claude/todos/
+.claude/projects/
+.claude/debug/
+.claude/statsig/
+.claude/telemetry/
+.claude/file-history/
+.claude/plugins/
+.claude/skills/
+.claude/plans/
+
+# API Keys and Tokens - NEVER commit these
+*.key
+*.token
+*.pem
+*.p12
+.env
+.env.*
+!.env.example
+!.env.template
+
+# OAuth and Authentication Data
+oauth_*
+credentials.json
+*credentials*
+auth_tokens.json
+session_tokens.json
+
+# Session and Debug Data
+*.session
+*.debug
+*.log
+*.jsonl
+*logs/
+debug_logs/
+
+# User-specific Configuration
+.claude/settings.local.json
+.claude/settings.user.json
+.claude/settings.production.json
+settings.local.json
+settings.user.json
+settings.production.json
+
+# Temporary and Backup Files
+*.tmp
+*.temp
+*.bak
+*.backup
+*~
+*.swp
+*.swo
+.autosave/
+# Auto-generated files
+auto/
+.cache/
+
+# OS Specific Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Editor and IDE Files
+.vscode/
+.idea/
+*.sublime-*
+.atom/
+.brackets.json
+eslintrc*
+.jshintrc*
+.clang-format
+.tern-project
+
+# Git Files (except main .gitignore)
+.git/
+.gitignore.backup
+.gitignore~
+
+# Docker Files
+.dockerignore
+docker-compose.override.yml
+docker-compose.prod.yml
+.docker/
+
+# Build and Distribution Artifacts
+node_modules/
+dist/
+build/
+target/
+out/
+bin/
+lib/
+*.tgz
+*.tar.gz
+*.zip
+*.war
+*.jar
+
+# Dependencies and Package Managers
+package-lock.json
+yarn.lock
+Gemfile.lock
+composer.lock
+requirements.txt
+Pipfile.lock
+
+# Runtime and Cache Directories
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+.nyc_output/
+coverage/
+
+# Test and Coverage Reports
+.coverage/
+test-results/
+coverage/
+*.lcov
+.nyc_output/
+
+# Database Files
+*.db
+*.sqlite
+*.sqlite3
+*.sql
+
+# Certificate Files
+*.crt
+*.key
+*.pem
+*.p12
+*.pfx
+ca-bundle.crt
+
+# Configuration Files with Secrets
+config/secrets.json
+config/production.json
+config/staging.json
+secrets/
+.private/
+
+# Cloud Provider Files
+.aws/
+.gcp/
+.azure/
+.kube/
+service-account.json
+
+# Terraform Files
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# Ansible Files
+*.retry
+inventory/hosts
+vault/
+
+# Monitoring and Logging
+logs/
+*.log
+monitoring/
+tracing/
+
+# Claude Code Specific - Additional Security
+# User data and conversation history
+.claude/conversations/
+.claude/chats/
+.claude/user-data/
+.claude/analytics/
+
+# Project-specific sensitive data
+local-config/
+secrets/
+private/
+.sensitive/
+
+# Archive and temporary directories
+archive/
+temp/
+tmp/
+backup/
+
+# Experimental and test files
+exp/
+test-data/
+sandbox/
+experimental/
+
+# Documentation build artifacts
+docs/_build/
+docs/build/
+site/
+
+# Hugo and Jekyll
+.hugo_build.lock
+.sass-cache/
+.jekyll-cache/
+_site/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Java and JVM
+*.class
+*.log
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Go
+*.test
+*.prof
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+
+# Rust
+target/
+Cargo.lock
+
+# Mobile Development
+ios/
+android/
+*.ipa
+*.apk
+
+# Machine Learning and Data Science
+*.pkl
+*.pickle
+*.model
+*.h5
+*.pb
+*.ckpt
+weights/
+
+# Large Media Files
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.flv
+*.webm
+*.mp3
+*.wav
+*.flac
+
+# Virtual Machines and Containers
+.vagrant/
+*.vdi
+*.vbox
+*.vmware/
+
+# Security and Encryption
+*.gpg
+*.asc
+*.enc
+*.aes
+
+# Claude Code Working Directories
+.claude-workspace/
+.claude-temp/
+claude-work/
