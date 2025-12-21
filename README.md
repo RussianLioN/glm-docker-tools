@@ -1,6 +1,42 @@
 # Claude Code Docker Integration
 
-> Production-ready Docker deployment for Claude Code with Z.AI API integration and comprehensive authentication research.
+> 🐳 **Production-ready Docker deployment** for Claude Code with Z.AI API integration and comprehensive authentication research.
+
+## 🧭 Navigation Hub
+
+### 📖 Table of Contents
+
+1. [🚀 Quick Start](#-quick-start)
+2. [📚 Complete Documentation](#-complete-documentation)
+3. [🏗️ Architecture Overview](#️-architecture-overview)
+4. [⚙️ Configuration](#️-configuration)
+5. [🔐 Security](#-security)
+6. [🧪 Development](#-development)
+7. [🔍 Research Findings](#-research-findings)
+8. [📋 Project Status](#-project-status)
+
+### 🎯 Quick Navigation by Role
+
+#### 🆕 **New to Project?**
+1. **[🔐 Security First](./SECURITY.md)** - Critical security guidelines
+2. **[📋 Project Instructions](./CLAUDE.md)** - Expert methodology
+3. **[🚀 Quick Start](#-quick-start)** - Get running in 5 minutes
+
+#### 🔧 **Setting Up Development?**
+1. **[🌐 Z.AI API Integration](./docs/Claude-Code-GLM.md)** - API configuration
+2. **[⚙️ Settings Reference](./docs/Claude-Code-settings.md)** - Complete configuration
+3. **[🧪 Testing Scripts](./scripts/)** - Validation tools
+
+#### 🚀 **Deploying to Production?**
+1. **[🔬 Authentication Research](./DOCKER_AUTHENTICATION_RESEARCH.md)** - Critical security analysis
+2. **[🏗️ Architecture](./docs/DOCKER_MAPPING_DIAGRAM.md)** - System design
+3. **[📋 Production Guide](./docs/USAGE_GUIDE.md)** - Operational procedures
+
+#### 🔍 **Troubleshooting Issues?**
+1. **[🔧 Debug Tools](./scripts/debug-mapping.sh)** - Volume mapping diagnostics
+2. **[📚 Usage Guide](./docs/USAGE_GUIDE.md)** - Common workflows
+3. **[🔍 Expert Analysis](./docs/EXPERT_ANALYSIS.md)** - Technical insights
+4. **[📚 Documentation Hub](./docs/index.md)** - **COMPLETE NAVIGATION** - All docs and search
 
 ## 🚀 Quick Start
 
@@ -41,26 +77,74 @@ docker run -it \
   claude-code-docker:latest
 ```
 
-## 📚 Documentation
+## 📚 Complete Documentation
 
-### Essential Reading
+### 🔐 **CRITICAL - Must Read First**
 
-1. **[Security Guidelines](./SECURITY.md)** - 🔐 **CRITICAL** - Security best practices and requirements
-2. **[Docker Authentication Research](./DOCKER_AUTHENTICATION_RESEARCH.md)** - 🔬 Comprehensive authentication analysis
-3. **[Practical Experiments Plan](./PRACTICAL_EXPERIMENTS_PLAN.md)** - 🧪 Validation experiments
-4. **[Session Handoff](./SESSION_HANDOFF.md)** - 📋 Project status and next steps
+1. **[🔒 Security Guidelines](./SECURITY.md)** - **MANDATORY** - Security best practices and procedures
+2. **[📋 Project Instructions](./CLAUDE.md)** - Expert methodology and systematic approach
+3. **[🔬 Authentication Research](./DOCKER_AUTHENTICATION_RESEARCH.md)** - Critical security analysis
 
-### Configuration Guides
+### 🌟 **Essential Reading**
 
-- **[CLAUDE.md](./CLAUDE.md)** - Project instructions and methodology
-- **[Z.AI API Integration](./docs/Claude-Code-GLM.md)** - Z.AI API setup and configuration
-- **[Usage Guide](./docs/USAGE_GUIDE.md)** - Comprehensive usage instructions
+#### 📖 Getting Started
+- **[🚀 Quick Start Guide](#-quick-start)** - Get running in 5 minutes
+- **[🌐 Z.AI API Integration](./docs/Claude-Code-GLM.md)** - GLM API setup and configuration
+- **[⚙️ Configuration Guide](./docs/USAGE_GUIDE.md)** - Daily operations and workflows
 
-### Technical Documentation
+#### 🏗️ Architecture & Design
+- **[🏗️ Architecture Overview](./docs/DOCKER_MAPPING_DIAGRAM.md)** - System design diagrams
+- **[🔍 Expert Analysis](./docs/EXPERT_ANALYSIS.md)** - Technical deep-dive and insights
+- **[📊 Multi-Container Analysis](./docs/MULTI_CONTAINER_RISK_ANALYSIS.md)** - Container strategies
 
-- **[Settings Reference](./docs/Claude-Code-settings.md)** - Complete configuration reference
-- **[Documentation Index](./docs/Claude-Code-Docs.md)** - All available documentation
-- **[Expert Analysis](./docs/EXPERT_ANALYSIS.md)** - Technical deep-dive
+#### 🔧 Configuration & Setup
+- **[⚙️ Settings Reference](./docs/Claude-Code-settings.md)** - Complete configuration documentation
+- **[📝 Configuration Template](./.claude/settings.template.json)** - Safe settings template
+- **[🔧 Development Scripts](./scripts/)** - Testing and debugging tools
+
+#### 🔬 Research & Validation
+- **[🧪 Experiments Plan](./PRACTICAL_EXPERIMENTS_PLAN.md)** - Validation procedures and testing
+- **[📋 Session Handoff](./SESSION_HANDOFF.md)** - Project status and next steps
+- **[🤖 System Instructions](./docs/system-instruction.md)** - AI methodology and prompts
+
+#### 📚 Reference Documentation
+- **[📚 Documentation Hub](./docs/index.md)** - **CENTRAL HUB** - Complete documentation navigation
+- **[📖 Official Documentation](./docs/Claude-Code-Docs.md)** - All Claude Code official docs
+- **[🎯 Project Review](./docs/PROJECT_REVIEW.md)** - Complete project analysis
+- **[🔄 Variable Reset Analysis](./docs/EXPERT_OPINION_VARIABLE_RESET.md)** - Environment handling
+
+### 🎯 **Documentation by Use Case**
+
+#### 🔒 **Security & Compliance**
+- **[🔐 Security Guidelines](./SECURITY.md)** - Must-read security practices
+- **[🔬 Authentication Research](./DOCKER_AUTHENTICATION_RESEARCH.md)** - Security analysis
+- **[📋 Security Handoff](./SESSION_HANDOFF.md)** - Security considerations
+
+#### 🚀 **Deployment & Operations**
+- **[🚀 Quick Start](#-quick-start)** - Immediate deployment
+- **[📋 Production Guide](./docs/USAGE_GUIDE.md)** - Operational procedures
+- **[🔧 Debug Tools](./scripts/debug-mapping.sh)** - Troubleshooting utilities
+
+#### 🔧 **Development & Testing**
+- **[🧪 Testing Scripts](./scripts/test-claude.sh)** - Validation tools
+- **[🔧 Development Workflow](#-development)** - Development procedures
+- **[📝 Template Configuration](./.claude/settings.template.json)** - Development setup
+
+#### 📚 **Learning & Reference**
+- **[📖 Official Documentation](./docs/Claude-Code-Docs.md)** - Claude Code docs
+- **[🔍 Expert Analysis](./docs/EXPERT_ANALYSIS.md)** - Technical insights
+- **[🤖 Methodology](./CLAUDE.md)** - Expert approach
+
+### 🔗 **Quick Links**
+
+#### ⚡ **Most Used**
+- **[🔐 Security](./SECURITY.md)** | **[🚀 Quick Start](#-quick-start)** | **[🌐 API Setup](./docs/Claude-Code-GLM.md)**
+
+#### 📁 **File Navigation**
+- **[⚙️ Configuration](./.claude/settings.template.json)** | **[🔧 Scripts](./scripts/)** | **[📖 Docs](./docs/)**
+
+#### 🔍 **Troubleshooting**
+- **[🔧 Debug Script](./scripts/debug-mapping.sh)** | **[📚 Usage Guide](./docs/USAGE_GUIDE.md)** | **[🔍 Expert Analysis](./docs/EXPERT_ANALYSIS.md)**
 
 ## 🏗️ Architecture
 

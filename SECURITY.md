@@ -1,5 +1,7 @@
 # Security Guidelines for Claude Code Docker Project
 
+> 🏠 [Home](./README.md) > **🔒 Security Guidelines**
+
 ## 🔐 Security Overview
 
 This project handles sensitive authentication data including OAuth tokens, API keys, and user information. Following these security guidelines is **mandatory** for all contributors.
@@ -184,8 +186,48 @@ claude-code-docker/
 
 ---
 
+## 🔗 Related Security Documentation
+
+### 🚨 **Critical Security Reading**
+- **[🔬 Authentication Research](./DOCKER_AUTHENTICATION_RESEARCH.md)** - OAuth token analysis and security findings
+- **[📋 Session Handoff](./SESSION_HANDOFF.md)** - Security considerations and status
+- **[🏠 Project Hub](./README.md#security)** - Security features and implementation
+
+### 🔧 **Implementation Security**
+- **[⚙️ Configuration Template](./.claude/settings.template.json)** - Secure configuration template
+- **[🔧 Debug Tools](./scripts/debug-mapping.sh)** - Security validation tools
+- **[📚 Usage Guide](./docs/USAGE_GUIDE.md)** - Operational security procedures
+
+### 📚 **Additional Resources**
+- **[📖 Claude Code Security](./docs/Claude-Code-Docs.md)** - Official security documentation
+- **[🔍 Expert Analysis](./docs/EXPERT_ANALYSIS.md)** - Technical security insights
+- **[🤖 Project Methodology](./CLAUDE.md)** - Security-focused development approach
+
+## 🚀 Quick Security Actions
+
+### 🆕 **New Contributors**
+1. **📖 Read This Document** - Security knowledge is mandatory
+2. **🔐 Configure Environment** - Use secure setup procedures
+3. **🧪 Run Security Tests** - Validate security configuration
+
+### 🔒 **Security Checklist**
+- [ ] Reviewed all security guidelines
+- [ ] Configured environment variables properly
+- [ ] Validated .gitignore coverage
+- [ ] Tested credential isolation
+- [ ] Enabled repository security features
+
+### 🚨 **If Security Issue Found**
+1. **🛑 Stop Work** - Do not commit potential security issues
+2. **📞 Report Immediately** - Create private security advisory
+3. **🔐 Revoke Tokens** - Immediately revoke any exposed credentials
+4. **📋 Document Findings** - Record security analysis and resolution
+
+---
+
 **Security Status**: ✅ Guidelines implemented
 **Last Updated**: 2025-12-19
 **Next Review**: 2026-01-19
+**Security Level**: 🔒 HIGH - All sensitive data protected
 
 **Remember**: Security is everyone's responsibility. When in doubt, don't commit!

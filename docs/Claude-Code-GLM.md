@@ -1,5 +1,7 @@
 # Claude Code
 
+> 🏠 [Home](../README.md) > **📚 Documentation** > **🌐 GLM Integration**
+
 > Methods for Using the GLM Coding Plan in Claude Code
 
 Claude Code is an agentic coding tool that lives in your terminal, understands your codebase, and helps you code faster by executing routine tasks, explaining complex code, and handling git workflows -- all through natural language commands.
@@ -222,6 +224,56 @@ claude --version
 claude update
 ```
 
+
+---
+
+## 🔗 Related Documentation
+
+### 🔧 **Configuration & Setup**
+- **[🔐 Security Guidelines](../SECURITY.md)** - Security best practices for API configuration
+- **[⚙️ Settings Reference](./Claude-Code-settings.md)** - Complete configuration documentation
+- **[📝 Configuration Template](../.claude/settings.template.json)** - Safe settings template
+
+### 🔬 **Authentication & Research**
+- **[🔬 Authentication Research](../DOCKER_AUTHENTICATION_RESEARCH.md)** - OAuth and API authentication analysis
+- **[📋 Project Instructions](../CLAUDE.md)** - Expert methodology and approach
+- **[🏠 Project Hub](../README.md)** - Complete project overview and navigation
+
+### 🚀 **Implementation & Usage**
+- **[📚 Usage Guide](./USAGE_GUIDE.md)** - Daily operations and workflows
+- **[🔧 Testing Scripts](../scripts/)** - Validation and debugging tools
+- **[🏗️ Architecture](./DOCKER_MAPPING_DIAGRAM.md)** - Container architecture diagrams
+
+### 📖 **Additional Resources**
+- **[📖 Documentation Index](./Claude-Code-Docs.md)** - All Claude Code official documentation
+- **[🔍 Expert Analysis](./EXPERT_ANALYSIS.md)** - Technical insights and deep-dive
+- **[🤖 System Instructions](./system-instruction.md)** - AI development methodology
+
+## 🎯 Quick GLM Setup Actions
+
+### 🆕 **New to GLM Integration?**
+1. **[🔐 Read Security First](../SECURITY.md)** - Security is mandatory
+2. **[📝 Copy Configuration Template](../.claude/settings.template.json)** - Safe setup starting point
+3. **[🧪 Run Validation Tests](../scripts/test-claude.sh)** - Verify GLM integration
+
+### ⚙️ **Configuration Checklist**
+- [ ] API token configured in settings.json
+- [ ] Base URL set to https://api.z.ai/api/anthropic
+- [ ] Model selection configured (glm-4.6 recommended)
+- [ ] Timeout settings adjusted (3000000ms recommended)
+- [ ] Security validation completed
+
+### 🚀 **Testing GLM Integration**
+```bash
+# Test GLM model selection
+claude /model
+
+# Verify API connectivity
+claude --version
+
+# Test functionality
+claude "Hello, can you confirm you're using GLM-4.6?"
+```
 
 ---
 

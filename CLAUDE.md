@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+> 🏠 [Home](./README.md) > **Project Instructions**
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## 🎯 EXPERT METHODOLOGY (REQUIRED)
@@ -105,10 +107,10 @@ Rollback: [Reversal steps]
 2. **[Identity and Access Management](https://code.claude.com/docs/en/iam.md)** - Authentication, authorization, and access controls
 3. **[Connect Claude Code to tools via MCP](https://code.claude.com/docs/en/mcp.md)** - Model Context Protocol integration
 4. **[Plugins](https://code.claude.com/docs/en/plugins.md)** - Plugin system architecture and usage
-5. **[GLM Coding Plan Configuration](./Claude-Code-GLM.md)** - Z.AI API integration and authentication setup (IMPORTANT for current project)
+5. **[GLM Coding Plan Configuration](./docs/Claude-Code-GLM.md)** - Z.AI API integration and authentication setup (IMPORTANT for current project)
 6. **[Docker Authentication Research](./DOCKER_AUTHENTICATION_RESEARCH.md)** - Comprehensive analysis of Claude Code authentication in Docker containers (CRITICAL for container deployment)
 
-### Critical Settings Sections (from local `Claude-Code-settings.md`)
+### Critical Settings Sections (from local [Claude-Code-settings.md](./docs/Claude-Code-settings.md))
 - **Settings files hierarchy** - Understanding precedence (Managed > CLI > Local > Shared > User)
 - **Permission settings** - Configuring tool access and security restrictions
 - **Sandbox settings** - Filesystem and network isolation for bash commands
@@ -116,7 +118,7 @@ Rollback: [Reversal steps]
 - **Environment variables** - Available configuration options
 - **Tools available to Claude** - Understanding Claude's capabilities and permissions
 
-### Key Documentation Topics (from local `Claude-Code-Docs.md`)
+### Key Documentation Topics (from local [Claude-Code-Docs.md](./docs/Claude-Code-Docs.md))
 - **[Set up Claude Code](https://code.claude.com/docs/en/setup.md)** - Installation and authentication
 - **[CLI reference](https://code.claude.com/docs/en/cli-reference.md)** - Complete command-line interface reference
 - **[Common workflows](https://code.claude.com/docs/en/common-workflows.md)** - Typical usage patterns
@@ -129,10 +131,37 @@ This is a documentation repository for Claude Code configuration and setup. The 
 
 ## Repository Structure
 
-- `Claude-Code-Docs.md` - Comprehensive list of Claude Code documentation topics
-- `Claude-Code-settings.md` - Detailed settings reference documentation
-- `system-instruction.md` - Expert assistant system prompt for Claude Code consultations
-- `claude.bak/settings.json` - Backup settings file with custom API configuration
+### 📁 Documentation Organization
+
+**Root Documentation:**
+- [`README.md`](./README.md) - **🏠 Main Project Hub** - Quick start and navigation center
+- [`SECURITY.md`](./SECURITY.md) - **🔐 Critical Security Guidelines** - Mandatory security practices
+- [`CLAUDE.md`](./CLAUDE.md) - **📋 Current File** - Project methodology and expert guidance
+- [`DOCKER_AUTHENTICATION_RESEARCH.md`](./DOCKER_AUTHENTICATION_RESEARCH.md) - **🔬 Research** - Authentication analysis and findings
+- [`PRACTICAL_EXPERIMENTS_PLAN.md`](./PRACTICAL_EXPERIMENTS_PLAN.md) - **🧪 Validation** - Experiment procedures and validation
+- [`SESSION_HANDOFF.md`](./SESSION_HANDOFF.md) - **📋 Handoff** - Session status and next steps
+
+**docs/ Directory - Organized Documentation:**
+- [`docs/Claude-Code-Docs.md`](./docs/Claude-Code-Docs.md) - **📖 External Docs Index** - Claude Code official documentation
+- [`docs/Claude-Code-GLM.md`](./docs/Claude-Code-GLM.md) - **🌐 Z.AI Integration** - GLM API configuration guide
+- [`docs/Claude-Code-settings.md`](./docs/Claude-Code-settings.md) - **⚙️ Settings Reference** - Complete configuration reference
+- [`docs/USAGE_GUIDE.md`](./docs/USAGE_GUIDE.md) - **📚 Usage Manual** - Daily operations and workflows
+- [`docs/EXPERT_ANALYSIS.md`](./docs/EXPERT_ANALYSIS.md) - **🔍 Technical Analysis** - Deep technical insights
+- [`docs/system-instruction.md`](./docs/system-instruction.md) - **🤖 AI Instructions** - System prompts and methodologies
+
+**Configuration Files:**
+- [`Dockerfile`](./Dockerfile) - **🐳 Container Definition** - Docker image configuration
+- [`docker-compose.yml`](./docker-compose.yml) - **📦 Orchestration** - Multi-container setup
+- [`claude-launch.sh`](./claude-launch.sh) - **🚀 Launcher Script** - Container deployment script
+
+**scripts/ Directory - Utilities:**
+- [`scripts/test-claude.sh`](./scripts/test-claude.sh) - **🧪 Testing** - Claude Code functionality tests
+- [`scripts/debug-mapping.sh`](./scripts/debug-mapping.sh) - **🔧 Debugging** - Volume mapping diagnostics
+- [`scripts/ai-assistant.zsh`](./scripts/ai-assistant.zsh) - **🤖 AI Assistant** - Automation scripts
+
+**Templates and Examples:**
+- [`.claude/settings.template.json`](./.claude/settings.template.json) - **📝 Configuration Template** - Safe settings template
+- [`examples/`](./examples/) - **💡 Example Files** - Sample configurations
 
 ## Key Configuration
 
@@ -180,10 +209,51 @@ Since this is a documentation repository, common tasks include:
 
 ---
 
+## 🔗 Related Documentation
+
+### Essential Reading
+- **🔐 [Security Guidelines](./SECURITY.md)** - Mandatory security practices and procedures
+- **🏠 [Project Hub](./README.md)** - Quick start guide and complete navigation
+- **🔬 [Authentication Research](./DOCKER_AUTHENTICATION_RESEARCH.md)** - Deep analysis of Docker authentication
+
+### Configuration & Setup
+- **🌐 [Z.AI API Integration](./docs/Claude-Code-GLM.md)** - GLM API setup and configuration
+- **⚙️ [Settings Reference](./docs/Claude-Code-settings.md)** - Complete configuration documentation
+- **📝 [Configuration Template](./.claude/settings.template.json)** - Safe settings template
+
+### Advanced Topics
+- **🧪 [Experiments Plan](./PRACTICAL_EXPERIMENTS_PLAN.md)** - Validation procedures and testing
+- **🔍 [Expert Analysis](./docs/EXPERT_ANALYSIS.md)** - Technical deep-dive and insights
+- **📋 [Session Handoff](./SESSION_HANDOFF.md)** - Project status and next steps
+
+### Quick Links
+- **[Docker Architecture](./docs/DOCKER_MAPPING_DIAGRAM.md)** - Container architecture diagrams
+- **[Usage Guide](./docs/USAGE_GUIDE.md)** - Daily operations and workflows
+- **[Testing Scripts](./scripts/)** - Utilities and validation tools
+
+## 🚀 Next Steps
+
+### If you're new to the project:
+1. **Start with [README.md](./README.md)** for project overview and quick start
+2. **Read [SECURITY.md](./SECURITY.md)** - security is mandatory
+3. **Review [Z.AI API Integration](./docs/Claude-Code-GLM.md)** for API setup
+
+### If you're setting up the environment:
+1. **Use [Configuration Template](./.claude/settings.template.json)** as a starting point
+2. **Follow [Docker Setup](./README.md#docker-setup)** instructions
+3. **Run [Validation Scripts](./scripts/test-claude.sh)** to verify setup
+
+### If you're troubleshooting:
+1. **Check [Authentication Research](./DOCKER_AUTHENTICATION_RESEARCH.md)** for common issues
+2. **Use [Debug Tools](./scripts/debug-mapping.sh)** for diagnostics
+3. **Review [Usage Guide](./docs/USAGE_GUIDE.md)** for operational procedures
+
+---
+
 ## Important Notes
 
-- The `claude.bak/settings.json` contains sensitive API configuration and should be handled carefully
-- This is a reference documentation repository, not an active development project
-- All content should align with official Claude Code documentation at code.claude.com/docs
-- **Always follow the EXPERT METHODOLOGY section for all tasks**
-- **Check active TODOs before starting new work** - link above
+- **🔒 Security First**: All credential files are excluded from version control - see [SECURITY.md](./SECURITY.md)
+- **📁 Repository Purpose**: This is a reference documentation repository, not active development
+- **📖 Official Docs**: All content aligns with [official Claude Code documentation](https://code.claude.com/docs/)
+- **🎯 Methodology**: Always follow the **EXPERT METHODOLOGY** section for systematic problem-solving
+- **🔄 Session Continuity**: Check [SESSION_HANDOFF.md](./SESSION_HANDOFF.md) for current project status
