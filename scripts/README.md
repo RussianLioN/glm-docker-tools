@@ -30,11 +30,11 @@ This directory contains utility scripts for Claude Code Docker integration.
 ```
 
 **Container Lifecycle Modes**:
-| Mode | Command | Container Behavior | Use Case |
-|------|---------|-------------------|----------|
-| **Standard** | `./glm-launch.sh` | Auto-delete on exit (`--rm`) | Daily work, temporary tasks |
-| **Debug** | `./glm-launch.sh --debug` | Persistent + shell access | Troubleshooting, investigation |
-| **No-delete** | `./glm-launch.sh --no-del` | Persistent container | Long-term tasks, state preservation |
+| Mode | Command | Container Behavior | Memory Usage | Use Case |
+|------|---------|-------------------|--------------|----------|
+| **Standard** | `./glm-launch.sh` | Auto-delete on exit (`--rm`) | ~0MB (removed) | Daily work, temporary tasks |
+| **Debug** | `./glm-launch.sh --debug` | Persistent + RUNNING | ~50-100MB | Troubleshooting, investigation |
+| **No-delete** | `./glm-launch.sh --no-del` | Persistent + STOPPED | ~0MB (stopped) | Long-term tasks, state preservation |
 
 #### [`launch-multiple.sh`](./launch-multiple.sh) - **Multiple Containers**
 **Launch and manage multiple Claude containers simultaneously**
@@ -137,6 +137,48 @@ This directory contains utility scripts for Claude Code Docker integration.
 ./test-config.sh --validate
 ```
 
+### 🐳 **Container Management Scripts**
+
+#### [`shell-access.sh`](./shell-access.sh) - **Convenient Shell Access**
+**Simplified shell access to stopped containers with automatic start/stop**
+
+```bash
+# Connect to container with automatic lifecycle management
+./scripts/shell-access.sh glm-docker-nodebug-1234567890
+
+# Show help
+./scripts/shell-access.sh --help
+```
+
+**What it does:**
+1. **Checks container state** - detects if container is running or stopped
+2. **Starts if needed** - automatically starts stopped containers
+3. **Connects to shell** - provides interactive /bin/bash access
+4. **Stops when done** - automatically stops container after exit
+
+**Use Cases:**
+- Accessing `--no-del` mode containers (which are stopped after Claude exits)
+- Quick shell operations without manual container management
+- Debugging and inspection of stopped containers
+
+**Container State Management**:
+| Container State | Script Behavior |
+|-----------------|-----------------|
+| **Stopped** | Start → Shell → Stop (automatic) |
+| **Running** | Direct shell access (no lifecycle change) |
+| **Not found** | Error with available containers list |
+
+**Comparison with manual commands:**
+```bash
+# Manual approach (3 commands):
+docker start glm-docker-nodebug-1234567890
+docker exec -it glm-docker-nodebug-1234567890 /bin/bash
+docker stop glm-docker-nodebug-1234567890
+
+# With shell-access.sh (1 command):
+./scripts/shell-access.sh glm-docker-nodebug-1234567890
+```
+
 ### 🤖 **AI Assistant Scripts**
 
 #### [`ai-assistant.zsh`](./ai-assistant.zsh) - **Legacy AI Assistant**
@@ -177,10 +219,13 @@ CLAUDE_STATE_DIR="$HOME/.claude" ./ai-assistant.zsh
 # 2. Start development session
 ./glm-launch.sh --no-del
 
-# 3. Work in Claude... (container persists)
+# 3. Work in Claude... (container STOPPED after exit)
 
-# 4. Reconnect later
-docker exec -it glm-docker-1234567890 claude
+# 4. Reconnect to Claude later
+docker start -ai glm-docker-nodebug-1234567890
+
+# 5. Access shell for operations
+./scripts/shell-access.sh glm-docker-nodebug-1234567890
 ```
 
 ### Testing New Features
@@ -197,8 +242,10 @@ docker exec -it glm-docker-1234567890 claude
 
 ## 🔒 Security Considerations
 
-- **Debug Mode**: Provides shell access - use only when necessary
-- **Persistent Containers**: May contain sensitive data - clean up regularly
+- **Debug Mode**: Container stays RUNNING - consumes resources, use only when necessary
+- **No-del Mode**: Container STOPS after Claude - resource-efficient, clean up regularly
+- **Shell Access**: Use `shell-access.sh` for convenient container management
+- **Persistent Containers**: May contain sensitive data - remove with `docker rm -f <container>`
 - **Volume Mounts**: Ensure proper file permissions
 - **API Tokens**: Store securely in `~/.claude/` directory
 
@@ -260,6 +307,6 @@ docker ps -aq --filter "name=glm-docker" | xargs -r docker rm -f
 
 **Status**: ✅ **Production Ready** - All scripts tested and documented
 
-**Last Updated**: 2025-12-22
-**Version**: 1.1.0
+**Last Updated**: 2025-12-22 (New: `shell-access.sh` utility, optimized container lifecycle)
+**Version**: 1.2.0
 **Compatible**: Claude Code Docker Integration with Lifecycle Management

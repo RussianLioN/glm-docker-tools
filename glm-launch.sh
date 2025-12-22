@@ -163,18 +163,14 @@ run_claude() {
     local timestamp=$(date +%s)
     local container_name="glm-docker-${timestamp}"
 
-    # В debug режиме используем постоянное имя для удобства
+    # Добавляем префикс в зависимости от режима
     if [[ "$DEBUG_MODE" == "true" ]]; then
-        container_name="claude-debug"
+        container_name="glm-docker-debug-${timestamp}"
+    elif [[ "$NO_DEL_MODE" == "true" ]]; then
+        container_name="glm-docker-nodebug-${timestamp}"
     fi
 
-    # Проверка и удаление существующего контейнера с таким именем
-    if docker ps -a --format "{{.Names}}" | grep -q "^${container_name}$"; then
-        log_warning "Найден существующий контейнер ${container_name}, удаляем..."
-        docker stop "$container_name" >/dev/null 2>&1 || true
-        docker rm "$container_name" >/dev/null 2>&1 || true
-    fi
-
+    
     # Подготовка Docker команды с учетом режима
     local docker_cmd=(docker run -it)
 
@@ -183,21 +179,30 @@ run_claude() {
         docker_cmd+=(--rm)  # Автоудаление по умолчанию
     fi
 
+    # Определяем режим для передачи в контейнер
+    local launch_mode="autodel"
+    if [[ "$DEBUG_MODE" == "true" ]]; then
+        launch_mode="debug"
+    elif [[ "$NO_DEL_MODE" == "true" ]]; then
+        launch_mode="nodebug"
+    fi
+
     docker_cmd+=(
         --name "$container_name"
         -v "$CLAUDE_HOME:/root/.claude"
         -v "$WORKSPACE:/workspace"
         -w /workspace
         -e CLAUDE_CONFIG_DIR=/root/.claude
-        "$IMAGE"
+        -e CLAUDE_LAUNCH_MODE="$launch_mode"
     )
 
     # Показать команду если dry-run
     if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "Dry run mode. Команда:"
         printf '%s ' "${docker_cmd[@]}"
+        printf '%s ' "$IMAGE"
         if [[ ${#claude_args[@]} -gt 0 ]]; then
-            printf ' %s ' "${claude_args[@]}"
+            printf '%s ' "${claude_args[@]}"
         fi
         echo
         return
@@ -230,21 +235,37 @@ run_claude() {
         ls -la "$CLAUDE_HOME" | head -10
     fi
 
-    # Запуск контейнера
+    # Универсальный запуск контейнера для всех режимов
+    local docker_exit_code=0
+
+    # Запускаем контейнер с универсальной логикой
     if [[ ${#claude_args[@]} -gt 0 ]]; then
-        "${docker_cmd[@]}" "${claude_args[@]}"
+        "${docker_cmd[@]}" "$IMAGE" "${claude_args[@]}" || docker_exit_code=$?
     else
-        "${docker_cmd[@]}"
+        "${docker_cmd[@]}" "$IMAGE" || docker_exit_code=$?
     fi
 
-    # В debug режиме предоставляем shell доступ после выхода из Claude
-    if [[ "$DEBUG_MODE" == "true" ]]; then
-        log_info "Claude Code завершился. Предоставляем shell доступ к контейнеру..."
-        log_info "Для выхода из shell: exit"
-        log_info "Для перезапуска Claude: docker exec -it $container_name claude"
+    # В режимах без автоудаления показываем информацию
+    if [[ "$DEBUG_MODE" == "true" || "$NO_DEL_MODE" == "true" ]]; then
+        echo
+        log_success "✅ Claude Code завершен"
 
-        # Запуск shell в том же контейнере
-        docker exec -it "$container_name" /bin/bash
+        if [[ "$NO_DEL_MODE" == "true" ]]; then
+            log_warning "⚠️  Контейнер '$container_name' сохранен (ОСТАНОВЛЕН)"
+            echo
+            log_info "📋 Команды для работы с контейнером:"
+            log_info "  docker start -ai $container_name                # Запустить Claude снова"
+            log_info "  ./scripts/shell-access.sh $container_name        # Удобный shell доступ"
+            log_info "  docker rm -f $container_name                    # Удалить контейнер"
+        else
+            log_warning "⚠️  Контейнер '$container_name' будет запущен после выхода из shell"
+            echo
+            log_info "📋 Команды для работы с контейнером:"
+            log_info "  docker stop $container_name                     # Остановить контейнер"
+            log_info "  docker start -ai $container_name                # Запустить Claude снова"
+            log_info "  docker rm -f $container_name                    # Удалить контейнер"
+        fi
+        echo
     fi
 }
 
@@ -282,6 +303,10 @@ while [[ $# -gt 0 ]]; do
         --no-del)
             NO_DEL_MODE=true
             shift
+            ;;
+        --)
+            shift
+            break
             ;;
         -*)
             log_error "Неизвестная опция: $1"

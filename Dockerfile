@@ -45,8 +45,15 @@ RUN echo 'export EDITOR=nano' >> /root/.bashrc && \
 # Volume mounts for persistent data
 VOLUME ["/root/.claude", "/workspace", "/root/.ssh"]
 
-# Default command
-CMD ["/usr/local/bin/claude"]
+# Copy universal entrypoint
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Set universal entrypoint
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+
+# Default command (empty - entrypoint handles everything)
+CMD []
 
 # Environment variables
 ENV NODE_ENV=production

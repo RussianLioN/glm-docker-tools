@@ -4,7 +4,7 @@
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-CLI-purple.svg)](https://code.claude.com/)
 [![Z.AI API](https://img.shields.io/badge/Z.AI%20API-Integrated-green.svg)](./docs/Claude-Code-GLM.md)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
-[![Version](https://img.shields.io/badge/Version-1.1.0-orange.svg)](https://github.com/s060874gmail/glm-docker-tools/releases)
+[![Version](https://img.shields.io/badge/Version-1.2.0-orange.svg)](https://github.com/s060874gmail/glm-docker-tools/releases)
 
 > 🐳 **Production-ready Docker deployment** for Claude Code with Z.AI API integration, container lifecycle management, and comprehensive authentication research.
 
@@ -115,33 +115,89 @@ docker run -it \
 
 The launcher script supports three container lifecycle modes for different use cases:
 
-| 🎯 **Mode** | ⚡ **Command** | 🔄 **Container Behavior** | 📋 **Use Case** | 🛡️ **Security** |
-|-------------|---------------|--------------------------|---------------|---------------|
-| **Standard** | `./glm-launch.sh` | 🗑️ Auto-delete on exit (`--rm`) | ✅ Daily work, temporary tasks | 🔒 **Most Secure** |
-| **Debug** | `./glm-launch.sh --debug` | 💾 Persistent + 🔧 shell access | 🐛 Troubleshooting, investigation | ⚠️ **Use with Caution** |
-| **No-del** | `./glm-launch.sh --no-del` | 💾 Persistent container | 📅 Long-term tasks, state preservation | ⚠️ **Manual Cleanup Required** |
+| 🎯 **Mode** | ⚡ **Command** | 🔄 **Container State** | 💾 **Memory** | 📋 **Use Case** | 🛡️ **Security** |
+|-------------|---------------|----------------------|--------------|---------------|---------------|
+| **Standard** | `./glm-launch.sh` | 🗑️ Auto-deleted | ~0MB | ✅ Daily work, temporary tasks | 🔒 **Most Secure** |
+| **Debug** | `./glm-launch.sh --debug` | 💾 **STOPPED** after shell | ~0MB | 🐛 Troubleshooting, investigation | ⚠️ **Manual Cleanup** |
+| **No-del** | `./glm-launch.sh --no-del` | 💾 **STOPPED** (persistent) | ~0MB | 📅 Long-term tasks, resource-efficient | ⚠️ **Manual Cleanup** |
+
+**Key Architecture Improvements:**
+- ✅ **Debug mode**: После Claude → **в shell контейнера** → при `exit` контейнер **останавливается**
+- ✅ **No-del mode**: После Claude → контейнер **останавливается** (~0MB когда не используется)
+- ✅ **Smart shell access utility** - `./scripts/shell-access.sh` для остановленных контейнеров
 
 ### Debug Mode Workflow
 
 ```bash
-# 1. Launch in debug mode
+# 1. Launch in debug mode (automatically enter container shell after Claude)
 ./glm-launch.sh --debug
 
 # 2. Work in Claude Code as usual
 # ... your Claude session ...
 
-# 3. After exiting Claude, you'll get shell access
-$ docker exec -it claude-debug /bin/bash
-root@claude-debug:/workspace#
+# 3. After exiting Claude - automatically in container shell
+# (Container name: glm-docker-debug-{timestamp})
+root@glm-docker-debug-1234567890:/workspace#
 
-# 4. Investigate issues
+# 4. Investigate issues directly in container
 ls -la /root/.claude/
 cat /root/.claude/logs/
-docker exec -it claude-debug claude --version
+claude --version
 
-# 5. Exit shell when done
+# 5. Exit shell when done - container STOPS
 exit
+
+# 6. Container is now STOPPED but preserved
+# To restart Claude:
+docker start -ai glm-docker-debug-1234567890
 ```
+
+### No-del Mode Workflow (Resource-Efficient)
+
+```bash
+# 1. Launch in no-del mode (container STOPS after Claude exits)
+./glm-launch.sh --no-del
+
+# 2. Work in Claude Code as usual
+# ... your Claude session ...
+
+# 3. Container stops automatically (saves resources!)
+# Output: "📦 Контейнер сохранен (ОСТАНОВЛЕН) для повторного использования"
+
+# 4. Reconnect to Claude later
+docker start -ai glm-docker-nodebug-1234567890
+
+# 5. Access shell for operations
+./scripts/shell-access.sh glm-docker-nodebug-1234567890
+# The utility automatically: starts container → opens shell → stops on exit
+
+# 6. Remove container when done
+docker rm -f glm-docker-nodebug-1234567890
+```
+
+### Shell Access Utility ⭐ NEW
+
+**`./scripts/shell-access.sh`** - Simplified shell access for stopped containers
+
+```bash
+# Convenient shell access with automatic lifecycle management
+./scripts/shell-access.sh glm-docker-nodebug-1234567890
+
+# What happens automatically:
+# 1. Checks if container is stopped
+# 2. Starts the container
+# 3. Opens /bin/bash shell
+# 4. Stops container on exit
+
+# Show help
+./scripts/shell-access.sh --help
+```
+
+**Benefits:**
+- ✅ One command instead of three (docker start + exec + stop)
+- ✅ Automatic state detection and management
+- ✅ Works with both stopped and running containers
+- ✅ Resource-efficient for no-del mode containers
 
 ### Container Management Commands
 
@@ -152,20 +208,43 @@ docker ps
 # View all containers (including stopped)
 docker ps -a
 
-# Connect to a running container
-docker exec -it <container-name> claude
+# View glm-docker containers only
+docker ps -a --filter "name=glm-docker"
 
-# Connect to container shell
-docker exec -it <container-name> bash
+# === Debug Mode Commands (RUNNING containers) ===
 
-# Stop a container
-docker stop <container-name>
+# Connect to Claude in running container
+docker exec -it glm-docker-debug-<timestamp> claude
+
+# Connect to shell in running container
+docker exec -it glm-docker-debug-<timestamp> /bin/bash
+
+# Stop debug container
+docker stop glm-docker-debug-<timestamp>
+
+# === No-del Mode Commands (STOPPED containers) ===
+
+# Restart Claude in stopped container
+docker start -ai glm-docker-nodebug-<timestamp>
+
+# Access shell with automatic lifecycle management
+./scripts/shell-access.sh glm-docker-nodebug-<timestamp>
+
+# Manual shell access (3 commands)
+docker start glm-docker-nodebug-<timestamp>
+docker exec -it glm-docker-nodebug-<timestamp> /bin/bash
+docker stop glm-docker-nodebug-<timestamp>
+
+# === Common Commands ===
 
 # Remove a container
-docker rm <container-name>
+docker rm -f <container-name>
 
 # Clean up all glm-docker containers
 docker ps -aq --filter "name=glm-docker" | xargs -r docker rm -f
+
+# Show container details
+docker inspect glm-docker-debug-<timestamp>
 ```
 
 ### Common Debugging Scenarios
@@ -175,12 +254,12 @@ docker ps -aq --filter "name=glm-docker" | xargs -r docker rm -f
 # Debug mode for authentication troubleshooting
 ./glm-launch.sh --debug
 
-# Check credential files
-cat ~/.claude/.credentials.json
-cat ~/.claude/.claude.json
+# Check credential files (in container shell)
+cat /root/.claude/.credentials.json
+cat /root/.claude/.claude.json
 
 # Verify API connectivity
-docker exec -it claude-debug curl -H "Authorization: Bearer $TOKEN" https://api.z.ai/api/anthropic/models
+curl -H "Authorization: Bearer $TOKEN" https://api.z.ai/api/anthropic/models
 ```
 
 #### 🔧 Volume Mapping Issues
@@ -189,11 +268,26 @@ docker exec -it claude-debug curl -H "Authorization: Bearer $TOKEN" https://api.
 ./glm-launch.sh --debug --dry-run
 
 # Verify volume mounts in container
-docker exec -it claude-debug ls -la /root/.claude
-docker exec -it claude-debug ls -la /workspace
+ls -la /root/.claude
+ls -la /workspace
 
 # Check permissions
-docker exec -it claude-debug stat /root/.claude/settings.json
+stat /root/.claude/settings.json
+```
+
+#### 🔍 Container State Issues
+```bash
+# Check all glm-docker containers and their states
+docker ps -a --filter "name=glm-docker" --format "table {{.Names}}\t{{.Status}}"
+
+# Check if specific container is running
+docker inspect -f '{{.State.Running}}' glm-docker-debug-1234567890
+
+# View container logs
+docker logs glm-docker-debug-1234567890
+
+# Access stopped container shell
+./scripts/shell-access.sh glm-docker-nodebug-1234567890
 ```
 
 #### 🧪 Nano Editor Issues
@@ -630,7 +724,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Project Status**: 🟢 Production Ready
 **Security Level**: 🔒 High
-**Last Updated**: 2025-12-19
-**Version**: 1.0.0
+**Last Updated**: 2025-12-22
+**Version**: 1.2.0 (New: Resource-efficient container lifecycle, shell-access.sh utility)
 
 > ⚠️ **Security Reminder**: Never commit authentication credentials or sensitive data to this repository.
