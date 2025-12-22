@@ -32,6 +32,8 @@ CLAUDE_HOME="${CLAUDE_HOME:-$HOME/.claude}"
 WORKSPACE="${WORKSPACE:-$(pwd)}"
 IMAGE="${CLAUDE_IMAGE:-glm-docker-tools:latest}"
 SHOW_HELP=false
+DEBUG_MODE=false
+NO_DEL_MODE=false
 
 # Показать справку
 show_help() {
@@ -48,6 +50,8 @@ Claude Code Launcher - Чистое решение для запуска Claude 
     -t, --test         Запустить тест конфигурации
     -b, --backup       Создать backup ~/.claude
     --dry-run          Показать команду запуска без выполнения
+    --debug            Debug режим: сохранить контейнер и предоставить shell доступ
+    --no-del           Сохранить контейнер после выхода (без автоудаления)
 
 Переменные окружения:
     CLAUDE_HOME        Директория Claude (по умолчанию: ~/.claude)
@@ -55,7 +59,9 @@ Claude Code Launcher - Чистое решение для запуска Claude 
     CLAUDE_IMAGE       Docker образ (по умолчанию: claude-code-tools:latest)
 
 Примеры:
-    $0                          # Запуск Claude в текущей директории
+    $0                          # Запуск Claude с автоудалением контейнера
+    $0 --debug                  # Debug режим с сохранением контейнера и shell доступом
+    $0 --no-del                 # Запуск с сохранением контейнера
     $0 /resume                   # Запуск с командой resume
     $0 -w ~/project              # Указать рабочую директорию
     $0 --test                    # Тест конфигурации
@@ -157,16 +163,27 @@ run_claude() {
     local timestamp=$(date +%s)
     local container_name="glm-docker-${timestamp}"
 
-    # Проверка и удаление существующего контейнера с таким именем
-    if docker ps -a --format "{{.Names}}" | grep -q "^claude-debug$"; then
-        log_warning "Найден существующий контейнер claude-debug, удаляем..."
-        docker stop claude-debug >/dev/null 2>&1 || true
-        docker rm claude-debug >/dev/null 2>&1 || true
+    # В debug режиме используем постоянное имя для удобства
+    if [[ "$DEBUG_MODE" == "true" ]]; then
+        container_name="claude-debug"
     fi
 
-    # Подготовка Docker команды
-    local docker_cmd=(
-        docker run -it
+    # Проверка и удаление существующего контейнера с таким именем
+    if docker ps -a --format "{{.Names}}" | grep -q "^${container_name}$"; then
+        log_warning "Найден существующий контейнер ${container_name}, удаляем..."
+        docker stop "$container_name" >/dev/null 2>&1 || true
+        docker rm "$container_name" >/dev/null 2>&1 || true
+    fi
+
+    # Подготовка Docker команды с учетом режима
+    local docker_cmd=(docker run -it)
+
+    # Добавление флагов в зависимости от режима
+    if [[ "$DEBUG_MODE" == "false" && "$NO_DEL_MODE" == "false" ]]; then
+        docker_cmd+=(--rm)  # Автоудаление по умолчанию
+    fi
+
+    docker_cmd+=(
         --name "$container_name"
         -v "$CLAUDE_HOME:/root/.claude"
         -v "$WORKSPACE:/workspace"
@@ -192,6 +209,15 @@ run_claude() {
     log_info "WORKSPACE: $WORKSPACE"
     log_info "IMAGE: $IMAGE"
 
+    # Показать режим работы
+    if [[ "$DEBUG_MODE" == "true" ]]; then
+        log_info "РЕЖИМ: DEBUG (контейнер будет сохранен, shell доступ доступен)"
+    elif [[ "$NO_DEL_MODE" == "true" ]]; then
+        log_info "РЕЖИМ: NO-DEL (контейнер будет сохранен)"
+    else
+        log_info "РЕЖИМ: AUTO-DEL (контейнер будет удален при выходе)"
+    fi
+
     # Проверка конфигурации перед запуском
     if [[ -f "$CLAUDE_HOME/settings.json" ]]; then
         log_success "Найден конфигурационный файл: $CLAUDE_HOME/settings.json"
@@ -209,6 +235,16 @@ run_claude() {
         "${docker_cmd[@]}" "${claude_args[@]}"
     else
         "${docker_cmd[@]}"
+    fi
+
+    # В debug режиме предоставляем shell доступ после выхода из Claude
+    if [[ "$DEBUG_MODE" == "true" ]]; then
+        log_info "Claude Code завершился. Предоставляем shell доступ к контейнеру..."
+        log_info "Для выхода из shell: exit"
+        log_info "Для перезапуска Claude: docker exec -it $container_name claude"
+
+        # Запуск shell в том же контейнере
+        docker exec -it "$container_name" /bin/bash
     fi
 }
 
@@ -239,6 +275,14 @@ while [[ $# -gt 0 ]]; do
             export DRY_RUN=true
             shift
             ;;
+        --debug)
+            DEBUG_MODE=true
+            shift
+            ;;
+        --no-del)
+            NO_DEL_MODE=true
+            shift
+            ;;
         -*)
             log_error "Неизвестная опция: $1"
             show_help
@@ -250,6 +294,13 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Валидация конфликтующих режимов
+if [[ "$DEBUG_MODE" == "true" && "$NO_DEL_MODE" == "true" ]]; then
+    log_error "Нельзя использовать --debug и --no-del одновременно"
+    show_help
+    exit 1
+fi
+
 # Показать справку
 if [[ "$SHOW_HELP" == "true" ]]; then
     show_help
@@ -258,7 +309,7 @@ fi
 
 # Основная логика
 main() {
-    log_info "Claude Code Launcher v1.0"
+    log_info "Claude Code Launcher v1.1"
 
     # Проверка зависимостей
     check_dependencies

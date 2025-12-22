@@ -27,8 +27,9 @@
 1. **[🌐 Z.AI API Integration](./docs/Claude-Code-GLM.md)** - API configuration
 2. **[⚙️ Settings Reference](./docs/Claude-Code-settings.md)** - Complete configuration
 3. **[📝 Settings Template Guide](./docs/SETTINGS_TEMPLATE_GUIDE.md)** - Ready-to-use configuration template with nano editor
-4. **[📝 Nano Editor Setup](./docs/NANO_EDITOR_SETUP.md)** - External editor integration
-5. **[🧪 Testing Scripts](./scripts/)** - Validation tools
+4. **[🔄 Container Lifecycle Management](./docs/CONTAINER_LIFECYCLE_MANAGEMENT.md)** - **NEW** - Container modes (--debug, --no-del, auto-delete)
+5. **[📝 Nano Editor Setup](./docs/NANO_EDITOR_SETUP.md)** - External editor integration
+6. **[🧪 Testing Scripts](./scripts/)** - Validation tools
 
 #### 🚀 **Deploying to Production?**
 1. **[🔬 Authentication Research](./DOCKER_AUTHENTICATION_RESEARCH.md)** - Critical security analysis
@@ -103,7 +104,8 @@ docker run -it \
 
 #### 🔧 Configuration & Setup
 - **[⚙️ Settings Reference](./docs/Claude-Code-settings.md)** - Complete configuration documentation
-- **[📝 Settings Template Guide](./docs/SETTINGS_TEMPLATE_GUIDE.md)** - **NEW** - Ready-to-use configuration with nano editor
+- **[📝 Settings Template Guide](./docs/SETTINGS_TEMPLATE_GUIDE.md)** - Ready-to-use configuration with nano editor
+- **[🔄 Container Lifecycle Management](./docs/CONTAINER_LIFECYCLE_MANAGEMENT.md)** - **NEW** - Container modes (--debug, --no-del, auto-delete)
 - **[📝 Configuration Template](./.claude/settings.template.json)** - Safe settings template
 - **[🔧 Development Scripts](./scripts/)** - Testing and debugging tools
 - **[📝 Nano Editor Setup](./docs/NANO_EDITOR_SETUP.md)** - External editor integration

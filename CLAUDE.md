@@ -225,7 +225,8 @@ Since this is a documentation repository, common tasks include:
 ### Configuration & Setup
 - **🌐 [Z.AI API Integration](./docs/Claude-Code-GLM.md)** - GLM API setup and configuration
 - **⚙️ [Settings Reference](./docs/Claude-Code-settings.md)** - Complete configuration documentation
-- **📝 [Settings Template Guide](./docs/SETTINGS_TEMPLATE_GUIDE.md)** - **NEW** - Ready-to-use configuration with nano editor
+- **📝 [Settings Template Guide](./docs/SETTINGS_TEMPLATE_GUIDE.md)** - Ready-to-use configuration with nano editor
+- **🔄 [Container Lifecycle Management](./docs/CONTAINER_LIFECYCLE_MANAGEMENT.md)** - **NEW** - Container modes (--debug, --no-del, auto-delete)
 - **📝 [Configuration Template](./.claude/settings.template.json)** - Safe settings template
 
 ### Advanced Topics
