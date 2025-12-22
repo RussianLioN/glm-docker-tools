@@ -1,5 +1,6 @@
 {
   "_comment": "This is a template file. Copy to settings.json and replace with your actual configuration",
+  "_comment_editor": "EDITOR and VISUAL variables configure the external text editor for Claude Code. Use Ctrl+G to open current prompt in the configured editor.",
   "ANTHROPIC_AUTH_TOKEN": "YOUR_API_TOKEN_HERE",
   "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
   "ANTHROPIC_DEFAULT_HAIKU_MODEL": "glm-4.5-air",
@@ -8,6 +9,8 @@
   "ANTHROPIC_MODEL": "glm-4.6",
   "alwaysThinkingEnabled": true,
   "env": {
+    "EDITOR": "nano",
+    "VISUAL": "nano",
     "ANTHROPIC_AUTH_TOKEN": "YOUR_API_TOKEN_HERE",
     "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
     "ANTHROPIC_DEFAULT_HAIKU_MODEL": "glm-4.5-air",
