@@ -8,12 +8,13 @@
 
 1. [🚀 Quick Start](#-quick-start)
 2. [📚 Complete Documentation](#-complete-documentation)
-3. [🏗️ Architecture Overview](#️-architecture-overview)
-4. [⚙️ Configuration](#️-configuration)
-5. [🔐 Security](#-security)
-6. [🧪 Development](#-development)
-7. [🔍 Research Findings](#-research-findings)
-8. [📋 Project Status](#-project-status)
+3. [📁 Project Structure](#-project-structure)
+4. [🏗️ Architecture Overview](#️-architecture-overview)
+5. [⚙️ Configuration](#️-configuration)
+6. [🔐 Security](#-security)
+7. [🧪 Development](#-development)
+8. [🔍 Research Findings](#-research-findings)
+9. [📋 Project Status](#-project-status)
 
 ### 🎯 Quick Navigation by Role
 
@@ -36,7 +37,8 @@
 1. **[🔧 Debug Tools](./scripts/debug-mapping.sh)** - Volume mapping diagnostics
 2. **[📚 Usage Guide](./docs/USAGE_GUIDE.md)** - Common workflows
 3. **[🔍 Expert Analysis](./docs/EXPERT_ANALYSIS.md)** - Technical insights
-4. **[📚 Documentation Hub](./docs/index.md)** - **COMPLETE NAVIGATION** - All docs and search
+4. **[🎯 Project Review](./docs/PROJECT_REVIEW.md)** - Complete project analysis
+5. **[📚 Documentation Hub](./docs/index.md)** - **COMPLETE NAVIGATION** - All docs and search
 
 ## 🚀 Quick Start
 
@@ -102,6 +104,12 @@ docker run -it \
 - **[📝 Configuration Template](./.claude/settings.template.json)** - Safe settings template
 - **[🔧 Development Scripts](./scripts/)** - Testing and debugging tools
 
+#### 🐳 Docker Infrastructure
+- **[🐳 Dockerfile](./Dockerfile)** - Current production container definition
+- **[🔧 Dockerfile.fixed](./Dockerfile.fixed)** - Enhanced container with fixes
+- **[📦 Docker Compose](./docker-compose.yml)** - Multi-container orchestration
+- **[🚀 Launcher Script](./claude-launch.sh)** - Container deployment automation
+
 #### 🔬 Research & Validation
 - **[🧪 Experiments Plan](./PRACTICAL_EXPERIMENTS_PLAN.md)** - Validation procedures and testing
 - **[📋 Session Handoff](./SESSION_HANDOFF.md)** - Project status and next steps
@@ -145,6 +153,85 @@ docker run -it \
 
 #### 🔍 **Troubleshooting**
 - **[🔧 Debug Script](./scripts/debug-mapping.sh)** | **[📚 Usage Guide](./docs/USAGE_GUIDE.md)** | **[🔍 Expert Analysis](./docs/EXPERT_ANALYSIS.md)**
+
+## 📁 Project Structure
+
+### Repository Organization
+
+```
+glm-docker-tools/
+├── 📄 README.md                    # 🏠 Main project hub
+├── 📋 CLAUDE.md                    # 📖 Project instructions for Claude
+├── 🔐 SECURITY.md                  # 🔒 Security guidelines
+├── 🔬 DOCKER_AUTHENTICATION_RESEARCH.md  # 📊 Authentication analysis
+├── 🧪 PRACTICAL_EXPERIMENTS_PLAN.md      # 📋 Experiment procedures
+├── 📋 SESSION_HANDOFF.md          # 🔄 Session status and next steps
+│
+├── 📁 docs/                       # 📚 Complete documentation
+│   ├── index.md                   # 🧭 Central navigation hub
+│   ├── Claude-Code-Docs.md        # 📖 Official docs index
+│   ├── Claude-Code-GLM.md         # 🌐 Z.AI API integration
+│   ├── Claude-Code-settings.md    # ⚙️ Settings reference
+│   ├── USAGE_GUIDE.md             # 📚 Daily operations
+│   ├── EXPERT_ANALYSIS.md         # 🔍 Technical insights
+│   ├── system-instruction.md      # 🤖 AI methodology
+│   ├── DOCKER_MAPPING_DIAGRAM.md  # 🏗️ Architecture diagrams
+│   ├── MULTI_CONTAINER_RISK_ANALYSIS.md  # 📊 Multi-container analysis
+│   ├── PROJECT_REVIEW.md          # 🎯 Complete project review
+│   └── EXPERT_OPINION_VARIABLE_RESET.md  # 🔄 Environment handling
+│
+├── 📁 scripts/                    # 🔧 Utility scripts
+│   ├── ai-assistant.zsh           # 🤖 Main AI assistant script
+│   ├── debug-mapping.sh           # 🔍 Volume mapping diagnostics
+│   ├── test-claude.sh             # 🧪 Claude functionality tests
+│   ├── test-config.sh             # ⚙️ Configuration validation
+│   └── test-claude-install.sh     # 📦 Installation tests
+│
+├── 📁 config/                     # ⚙️ Configuration files (future)
+│   └── README.md                  # 📋 Directory purpose and plans
+│
+├── 📁 tests/                      # 🧪 Test suites (future)
+│   └── README.md                  # 📋 Testing framework plans
+│
+├── 📁 examples/                   # 💡 Usage examples
+│   └── README.md                  # 📋 Example categories
+│
+├── 🐳 Dockerfile                  # 🐳 Container definition
+├── 🔧 Dockerfile.fixed            # 🔧 Enhanced container version
+├── 📦 docker-compose.yml          # 📦 Multi-container setup
+├── 🚀 claude-launch.sh            # 🚀 Launcher script
+└── 📄 LICENSE                     # 📄 Project license
+```
+
+### Directory Purposes
+
+#### 📚 **Documentation** (`docs/`)
+- **Complete navigation** via `index.md`
+- **Official docs** integration and reference
+- **Technical analysis** and research findings
+- **Usage guides** and best practices
+
+#### 🔧 **Scripts** (`scripts/`)
+- **Testing utilities** for validation
+- **Debug tools** for troubleshooting
+- **Deployment automation** scripts
+- **AI assistant** integration tools
+
+#### ⚙️ **Configuration** (`config/`)
+- **Future environment files** (.env variants)
+- **CI/CD pipeline configurations**
+- **Monitoring and logging setups**
+
+#### 🧪 **Tests** (`tests/`)
+- **Automated test suites** (planned)
+- **Integration tests** for containers
+- **Security validation** scripts
+- **Performance benchmarks**
+
+#### 💡 **Examples** (`examples/`)
+- **Deployment scenarios** and patterns
+- **Configuration examples**
+- **Use case demonstrations**
 
 ## 🏗️ Architecture
 

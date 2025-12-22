@@ -201,11 +201,17 @@ Since this is a documentation repository, common tasks include:
 
 **Key Components**:
 - `Dockerfile` - Custom image with timezone fix
+- `Dockerfile.fixed` - Enhanced container version with additional fixes
 - `claude-launch.sh` - Launcher script with proper volume mapping
 - `docker-compose.yml` - Container orchestration configuration
 - `.claude/settings.json` - Project-specific authentication configuration
 
 **Critical Finding**: Authorization persistence depends on **volume mapping identity** rather than container names or images
+
+**Docker Version Management**:
+- Always document differences between Docker variants
+- Maintain change logs for container modifications
+- Test both versions before deployment
 
 ---
 
@@ -231,6 +237,25 @@ Since this is a documentation repository, common tasks include:
 - **[Usage Guide](./docs/USAGE_GUIDE.md)** - Daily operations and workflows
 - **[Testing Scripts](./scripts/)** - Utilities and validation tools
 
+## 📁 Backup and Archive Management
+
+### Backup Policy
+- **`.bak` files** - Automatic backups created during major edits
+- **Archive directory** - Long-term storage of deprecated documents
+- **Version tracking** - Maintain history of significant changes
+
+### Working with Backups
+```bash
+# List all backup files
+find . -name "*.bak" -type f
+
+# Restore from backup (if needed)
+cp important.md.bak important.md
+
+# Clean old backups (after validation)
+find . -name "*.bak" -mtime +30 -delete
+```
+
 ## 🚀 Next Steps
 
 ### If you're new to the project:
@@ -247,6 +272,12 @@ Since this is a documentation repository, common tasks include:
 1. **Check [Authentication Research](./DOCKER_AUTHENTICATION_RESEARCH.md)** for common issues
 2. **Use [Debug Tools](./scripts/debug-mapping.sh)** for diagnostics
 3. **Review [Usage Guide](./docs/USAGE_GUIDE.md)** for operational procedures
+
+### Archive and Research Access
+- **[🎯 Project Review](./docs/PROJECT_REVIEW.md)** - Complete project analysis and findings
+- **[🔄 Variable Reset Analysis](./docs/EXPERT_OPINION_VARIABLE_RESET.md)** - Environment variable handling
+- **[📊 Multi-Container Analysis](./docs/MULTI_CONTAINER_RISK_ANALYSIS.md)** - Container strategy risks
+- **[🗂️ Archive Directory](./archive/)** - Historical documents and deprecated files
 
 ---
 

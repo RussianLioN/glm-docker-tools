@@ -27,6 +27,9 @@
 - **[⚙️ Settings Reference](./Claude-Code-settings.md)** - Complete configuration documentation
 - **[📚 Usage Guide](./USAGE_GUIDE.md)** - Daily operations and workflows
 - **[📝 Configuration Template](../.claude/settings.template.json)** - Safe settings template
+- **[📁 Config Directory](../config/README.md)** - Future configuration files
+- **[🧪 Tests Directory](../tests/README.md)** - Test framework plans
+- **[💡 Examples Directory](../examples/README.md)** - Usage examples and patterns
 
 #### 🔬 Research & Validation
 - **[🧪 Experiments Plan](../PRACTICAL_EXPERIMENTS_PLAN.md)** - Validation procedures and testing

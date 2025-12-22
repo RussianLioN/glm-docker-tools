@@ -30,7 +30,7 @@ log_error() {
 # Конфигурация с умолчаниями
 CLAUDE_HOME="${CLAUDE_HOME:-$HOME/.claude}"
 WORKSPACE="${WORKSPACE:-$(pwd)}"
-IMAGE="${CLAUDE_IMAGE:-claude-code-docker:latest}"
+IMAGE="${CLAUDE_IMAGE:-glm-docker-tools:latest}"
 SHOW_HELP=false
 
 # Показать справку
@@ -153,10 +153,21 @@ test_configuration() {
 run_claude() {
     local claude_args=("$@")
 
+    # Генерация уникального имени контейнера
+    local timestamp=$(date +%s)
+    local container_name="glm-docker-${timestamp}"
+
+    # Проверка и удаление существующего контейнера с таким именем
+    if docker ps -a --format "{{.Names}}" | grep -q "^claude-debug$"; then
+        log_warning "Найден существующий контейнер claude-debug, удаляем..."
+        docker stop claude-debug >/dev/null 2>&1 || true
+        docker rm claude-debug >/dev/null 2>&1 || true
+    fi
+
     # Подготовка Docker команды
     local docker_cmd=(
         docker run -it
-        --name claude-debug
+        --name "$container_name"
         -v "$CLAUDE_HOME:/root/.claude"
         -v "$WORKSPACE:/workspace"
         -w /workspace
@@ -176,6 +187,7 @@ run_claude() {
     fi
 
     log_info "Запуск Claude Code..."
+    log_info "CONTAINER_NAME: $container_name"
     log_info "CLAUDE_HOME: $CLAUDE_HOME"
     log_info "WORKSPACE: $WORKSPACE"
     log_info "IMAGE: $IMAGE"
