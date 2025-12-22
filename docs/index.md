@@ -25,6 +25,8 @@
 
 #### 🔧 Configuration & Setup
 - **[⚙️ Settings Reference](./Claude-Code-settings.md)** - Complete configuration documentation
+- **[📝 Settings Template Guide](./SETTINGS_TEMPLATE_GUIDE.md)** - **NEW** - Ready-to-use configuration with nano editor
+- **[🔄 Container Lifecycle Management](./CONTAINER_LIFECYCLE_MANAGEMENT.md)** - **NEW** - Container modes (--debug, --no-del, auto-delete)
 - **[📚 Usage Guide](./USAGE_GUIDE.md)** - Daily operations and workflows
 - **[📝 Configuration Template](../.claude/settings.template.json)** - Safe settings template
 - **[📁 Config Directory](../config/README.md)** - Future configuration files

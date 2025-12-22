@@ -170,6 +170,29 @@ This repository uses custom model configuration with GLM models instead of defau
 - Haiku model: glm-4.5-air
 - Custom API endpoint: https://api.z.ai/api/anthropic
 - Extended thinking enabled by default
+- External editor: nano (configured in settings template)
+
+### Container Lifecycle Management
+
+The project supports three container lifecycle modes via the launcher script:
+
+```bash
+# Standard mode (auto-delete) - recommended for daily use
+./glm-launch.sh
+
+# Debug mode - persistent container with shell access for troubleshooting
+./glm-launch.sh --debug
+
+# No-del mode - persistent container for long-term tasks
+./glm-launch.sh --no-del
+```
+
+**Debug Workflow**:
+1. Launch with `./glm-launch.sh --debug`
+2. Work in Claude Code normally
+3. After exiting Claude, get shell access automatically
+4. Investigate issues with `docker exec -it claude-debug bash`
+5. Exit shell when finished
 
 ## Common Tasks
 

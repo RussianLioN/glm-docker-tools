@@ -1,20 +1,27 @@
 # Claude Code Docker Integration
 
-> 🐳 **Production-ready Docker deployment** for Claude Code with Z.AI API integration and comprehensive authentication research.
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://www.docker.com/)
+[![Claude Code](https://img.shields.io/badge/Claude%20Code-CLI-purple.svg)](https://code.claude.com/)
+[![Z.AI API](https://img.shields.io/badge/Z.AI%20API-Integrated-green.svg)](./docs/Claude-Code-GLM.md)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![Version](https://img.shields.io/badge/Version-1.1.0-orange.svg)](https://github.com/s060874gmail/glm-docker-tools/releases)
+
+> 🐳 **Production-ready Docker deployment** for Claude Code with Z.AI API integration, container lifecycle management, and comprehensive authentication research.
 
 ## 🧭 Navigation Hub
 
 ### 📖 Table of Contents
 
 1. [🚀 Quick Start](#-quick-start)
-2. [📚 Complete Documentation](#-complete-documentation)
-3. [📁 Project Structure](#-project-structure)
-4. [🏗️ Architecture Overview](#️-architecture-overview)
-5. [⚙️ Configuration](#️-configuration)
-6. [🔐 Security](#-security)
-7. [🧪 Development](#-development)
-8. [🔍 Research Findings](#-research-findings)
-9. [📋 Project Status](#-project-status)
+2. [🐛 Debugging Guide](#-debugging-guide)
+3. [📚 Complete Documentation](#-complete-documentation)
+4. [📁 Project Structure](#-project-structure)
+5. [🏗️ Architecture Overview](#️-architecture-overview)
+6. [⚙️ Configuration](#️-configuration)
+7. [🔐 Security](#-security)
+8. [🧪 Development](#-development)
+9. [🔍 Research Findings](#-research-findings)
+10. [📋 Project Status](#-project-status)
 
 ### 🎯 Quick Navigation by Role
 
@@ -37,11 +44,13 @@
 3. **[📋 Production Guide](./docs/USAGE_GUIDE.md)** - Operational procedures
 
 #### 🔍 **Troubleshooting Issues?**
-1. **[🔧 Debug Tools](./scripts/debug-mapping.sh)** - Volume mapping diagnostics
-2. **[📚 Usage Guide](./docs/USAGE_GUIDE.md)** - Common workflows
-3. **[🔍 Expert Analysis](./docs/EXPERT_ANALYSIS.md)** - Technical insights
-4. **[🎯 Project Review](./docs/PROJECT_REVIEW.md)** - Complete project analysis
-5. **[📚 Documentation Hub](./docs/index.md)** - **COMPLETE NAVIGATION** - All docs and search
+1. **[🐛 Debugging Guide](#-debugging-guide)** - **NEW** - Container lifecycle & troubleshooting
+2. **[🔧 Debug Tools](./scripts/debug-mapping.sh)** - Volume mapping diagnostics
+3. **[🔄 Container Lifecycle Management](./docs/CONTAINER_LIFECYCLE_MANAGEMENT.md)** - Complete lifecycle guide
+4. **[📚 Usage Guide](./docs/USAGE_GUIDE.md)** - Common workflows
+5. **[🔍 Expert Analysis](./docs/EXPERT_ANALYSIS.md)** - Technical insights
+6. **[🎯 Project Review](./docs/PROJECT_REVIEW.md)** - Complete project analysis
+7. **[📚 Documentation Hub](./docs/index.md)** - **COMPLETE NAVIGATION** - All docs and search
 
 ## 🚀 Quick Start
 
@@ -71,16 +80,163 @@ nano .claude/settings.json
 # Using Docker Compose (recommended)
 docker-compose up -d
 
-# Using the launcher script
-./claude-launch.sh
+# Using the launcher script (auto-delete container)
+./glm-launch.sh
 
 # Direct Docker command
 docker run -it \
   -v ~/.claude:/root/.claude \
   -v $(pwd):/workspace \
   -w /workspace \
-  claude-code-docker:latest
+  glm-docker-tools:latest
 ```
+
+### 🐳 Container Lifecycle Options
+
+```bash
+# Standard mode - auto-delete container (recommended for daily use)
+./glm-launch.sh
+
+# Debug mode - keep container + shell access for troubleshooting
+./glm-launch.sh --debug
+
+# No-delete mode - keep container for long-term tasks
+./glm-launch.sh --no-del
+
+# See available options
+./glm-launch.sh --help
+```
+
+> 💡 **推荐**: Use standard mode for everyday work (auto-cleanup), switch to `--debug` when troubleshooting issues.
+
+## 🐛 Debugging Guide
+
+### Container Lifecycle Management
+
+The launcher script supports three container lifecycle modes for different use cases:
+
+| 🎯 **Mode** | ⚡ **Command** | 🔄 **Container Behavior** | 📋 **Use Case** | 🛡️ **Security** |
+|-------------|---------------|--------------------------|---------------|---------------|
+| **Standard** | `./glm-launch.sh` | 🗑️ Auto-delete on exit (`--rm`) | ✅ Daily work, temporary tasks | 🔒 **Most Secure** |
+| **Debug** | `./glm-launch.sh --debug` | 💾 Persistent + 🔧 shell access | 🐛 Troubleshooting, investigation | ⚠️ **Use with Caution** |
+| **No-del** | `./glm-launch.sh --no-del` | 💾 Persistent container | 📅 Long-term tasks, state preservation | ⚠️ **Manual Cleanup Required** |
+
+### Debug Mode Workflow
+
+```bash
+# 1. Launch in debug mode
+./glm-launch.sh --debug
+
+# 2. Work in Claude Code as usual
+# ... your Claude session ...
+
+# 3. After exiting Claude, you'll get shell access
+$ docker exec -it claude-debug /bin/bash
+root@claude-debug:/workspace#
+
+# 4. Investigate issues
+ls -la /root/.claude/
+cat /root/.claude/logs/
+docker exec -it claude-debug claude --version
+
+# 5. Exit shell when done
+exit
+```
+
+### Container Management Commands
+
+```bash
+# View running containers
+docker ps
+
+# View all containers (including stopped)
+docker ps -a
+
+# Connect to a running container
+docker exec -it <container-name> claude
+
+# Connect to container shell
+docker exec -it <container-name> bash
+
+# Stop a container
+docker stop <container-name>
+
+# Remove a container
+docker rm <container-name>
+
+# Clean up all glm-docker containers
+docker ps -aq --filter "name=glm-docker" | xargs -r docker rm -f
+```
+
+### Common Debugging Scenarios
+
+#### 🔍 Authentication Issues
+```bash
+# Debug mode for authentication troubleshooting
+./glm-launch.sh --debug
+
+# Check credential files
+cat ~/.claude/.credentials.json
+cat ~/.claude/.claude.json
+
+# Verify API connectivity
+docker exec -it claude-debug curl -H "Authorization: Bearer $TOKEN" https://api.z.ai/api/anthropic/models
+```
+
+#### 🔧 Volume Mapping Issues
+```bash
+# Test volume mapping
+./glm-launch.sh --debug --dry-run
+
+# Verify volume mounts in container
+docker exec -it claude-debug ls -la /root/.claude
+docker exec -it claude-debug ls -la /workspace
+
+# Check permissions
+docker exec -it claude-debug stat /root/.claude/settings.json
+```
+
+#### 🧪 Nano Editor Issues
+```bash
+# Debug nano editor integration
+./glm-launch.sh --debug
+
+# Test nano directly in container
+docker exec -it claude-debug nano --version
+docker exec -it claude-debug echo "test" | docker exec -i claude-debug nano /tmp/test.txt
+
+# Check environment variables
+docker exec -it claude-debug env | grep -E "(EDITOR|VISUAL)"
+```
+
+### Testing Framework
+
+```bash
+# Run comprehensive lifecycle tests
+./scripts/test-container-lifecycle.sh
+
+# Test with real container
+./scripts/test-container-lifecycle.sh --test-real
+
+# Cleanup test containers
+./scripts/test-container-lifecycle.sh --cleanup
+```
+
+### Performance Monitoring
+
+```bash
+# Monitor container resource usage
+docker stats
+
+# Check container logs
+docker logs <container-name>
+
+# Monitor disk usage
+docker exec -it claude-debug df -h
+docker exec -it claude-debug du -sh /root/.claude
+```
+
+> 📖 **Complete Guide**: See [Container Lifecycle Management](./docs/CONTAINER_LIFECYCLE_MANAGEMENT.md) for detailed documentation.
 
 ## 📚 Complete Documentation
 
@@ -278,6 +434,24 @@ ANTHROPIC_BASE_URL="https://api.z.ai/api/anthropic"
 ANTHROPIC_MODEL="glm-4.6"
 API_TIMEOUT_MS="3000000"
 TZ="Europe/Moscow"
+
+# External editor configuration
+EDITOR=nano
+VISUAL=nano
+```
+
+### Launcher Script Configuration
+
+```bash
+# Environment variables for launcher script
+export CLAUDE_HOME="$HOME/.claude"          # Claude config directory
+export WORKSPACE="$(pwd)"                   # Working directory
+export CLAUDE_IMAGE="glm-docker-tools:latest"  # Docker image
+
+# Use launcher with different lifecycle modes
+./glm-launch.sh              # Auto-delete (default)
+./glm-launch.sh --debug      # Debug mode with shell access
+./glm-launch.sh --no-del     # Persistent container
 ```
 
 ### Docker Compose

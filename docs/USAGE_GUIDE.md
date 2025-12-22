@@ -1,28 +1,34 @@
-# Инструкция по запуску Claude с исправленной конфигурацией
+# Usage Guide for Claude Code Docker Integration
 
-## 🎯 Краткая инструкция
+> 🏠 [Home](../README.md) > **📚 Documentation** > **Usage Guide**
 
-### 1. Быстрый запуск (рекомендуется)
+## 🎯 Quick Start Guide
+
+### 1. Modern Launcher Script (Recommended)
 
 ```bash
-# Шаг 1: Сбросить старые переменные
-unset CLAUDE_STATE_DIR
+# Standard mode - auto-delete container (recommended for daily use)
+./glm-launch.sh
 
-# Шаг 2: Запустить с правильной конфигурацией
-CLAUDE_STATE_DIR="$HOME/.claude" ./ai-assistant.zsh
+# Debug mode - persistent container with shell access for troubleshooting
+./glm-launch.sh --debug
 
-# Шаг 3: Внутри контейнера проверить историю
-claude /resume  # Должна показать полную историю
+# No-delete mode - persistent container for long-term tasks
+./glm-launch.sh --no-del
+
+# See all available options
+./glm-launch.sh --help
 ```
 
-### 2. Запуск в новой shell сессии
+### 2. Legacy Script Support
 
 ```bash
-# Начать новую сессию (все переменные пересоздадутся)
-exec zsh
-
-# Запустить Claude
+# Legacy script (still supported)
 ./ai-assistant.zsh
+
+# Alternative configuration method
+unset CLAUDE_STATE_DIR
+CLAUDE_STATE_DIR="$HOME/.claude" ./ai-assistant.zsh
 ```
 
 ---

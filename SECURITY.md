@@ -87,6 +87,111 @@ git status --porcelain | grep -E "\.(json|key|pem)$"
    - **Action**: Exclude from version control
    - **Storage**: Runtime only, not persistent
 
+## 🔒 Debugging Security
+
+### Debug Mode Security Considerations
+
+When using `--debug` mode, be aware of the following security implications:
+
+#### ✅ **Secure Debug Practices**
+```bash
+# Use debug mode only when necessary
+./glm-launch.sh --debug
+
+# Limit debug session time
+# Exit shell immediately after investigation
+
+# Clean up debug containers promptly
+docker rm -f claude-debug
+
+# Review container contents before cleanup
+docker exec -it claude-debug ls -la /root/.claude/
+```
+
+#### 🚨 **Security Risks in Debug Mode**
+- **Shell Access**: Debug mode provides unrestricted shell access to container
+- **Persistent Data**: Containers may retain sensitive session data
+- **File System Access**: Full access to mounted volumes and configuration files
+- **Network Access**: Container inherits host network capabilities
+
+#### 🛡️ **Debug Security Checklist**
+- [ ] Use debug mode only for troubleshooting specific issues
+- [ ] Limit debug session duration
+- [ ] Clean up debug containers immediately after use
+- [ ] Review container logs for sensitive data exposure
+- [ ] Ensure no credentials are left in container history
+- [ ] Verify cleanup of temporary files and caches
+
+#### 🔍 **Secure Debug Workflow**
+```bash
+# 1. Start debug session with purpose
+./glm-launch.sh --debug
+
+# 2. Investigate specific issue only
+# Example: Check configuration
+docker exec -it claude-debug cat /root/.claude/settings.json
+
+# 3. Exit Claude when investigation complete
+# 4. Use shell access for final verification
+docker exec -it claude-debug bash
+# ... minimal investigation commands ...
+exit
+
+# 5. Clean up immediately
+docker rm -f claude-debug
+```
+
+### Container Lifecycle Security
+
+#### Standard Mode (Recommended)
+```bash
+./glm-launch.sh  # Auto-delete - most secure
+```
+- ✅ **Auto-cleanup**: Container automatically removed on exit
+- ✅ **No persistence**: No data retention between sessions
+- ✅ **Minimal exposure**: Reduced attack surface
+
+#### No-del Mode
+```bash
+./glm-launch.sh --no-del  # Persistent container
+```
+- ⚠️ **Data persistence**: Container retains all session data
+- ⚠️ **Manual cleanup**: Requires explicit container removal
+- ⚠️ **Extended exposure**: Longer window for potential exploitation
+
+#### 🛡️ **Secure Container Management**
+```bash
+# Regular cleanup of persistent containers
+docker ps -aq --filter "name=glm-docker" | xargs -r docker rm -f
+
+# Monitor for suspicious containers
+docker ps -a --filter "name=glm-docker" --format "table {{.Names}}\t{{.Status}}\t{{.CreatedAt}}"
+
+# Review container mounts and environment
+docker inspect claude-debug | grep -A 10 -B 5 "Mounts\|Env"
+```
+
+### Auditing and Monitoring
+
+#### Debug Session Logging
+```bash
+# Enable audit logging for debug sessions
+export CLAUDE_DEBUG_AUDIT=true
+./glm-launch.sh --debug
+
+# Review debug access logs
+tail -f ~/.claude/debug-audit.log
+```
+
+#### Container Security Scan
+```bash
+# Scan containers for vulnerabilities
+docker scan glm-docker-tools:latest
+
+# Check container security settings
+docker run --rm -it --cap-drop=ALL --cap-add=CHOWN --cap-add=SETGID --cap-add=SETUID glm-docker-tools:latest whoami
+```
+
 ## 🚨 Incident Response
 
 ### If Sensitive Data is Committed:
