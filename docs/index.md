@@ -30,6 +30,7 @@
 - **[📁 Config Directory](../config/README.md)** - Future configuration files
 - **[🧪 Tests Directory](../tests/README.md)** - Test framework plans
 - **[💡 Examples Directory](../examples/README.md)** - Usage examples and patterns
+- **[📝 Nano Editor Setup](./NANO_EDITOR_SETUP.md)** - External editor integration
 
 #### 🔬 Research & Validation
 - **[🧪 Experiments Plan](../PRACTICAL_EXPERIMENTS_PLAN.md)** - Validation procedures and testing

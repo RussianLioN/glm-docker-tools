@@ -103,6 +103,7 @@ docker run -it \
 - **[⚙️ Settings Reference](./docs/Claude-Code-settings.md)** - Complete configuration documentation
 - **[📝 Configuration Template](./.claude/settings.template.json)** - Safe settings template
 - **[🔧 Development Scripts](./scripts/)** - Testing and debugging tools
+- **[📝 Nano Editor Setup](./docs/NANO_EDITOR_SETUP.md)** - External editor integration
 
 #### 🐳 Docker Infrastructure
 - **[🐳 Dockerfile](./Dockerfile)** - Current production container definition
