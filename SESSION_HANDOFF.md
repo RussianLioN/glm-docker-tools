@@ -5,11 +5,57 @@
 ## 🔄 CURRENT SESSION - 2025-12-23
 
 **Session Date**: 2025-12-23
-**Session Duration**: Container lifecycle management refactor
-**Primary Focus**: Universal container launch architecture with smart entrypoint system
-**Completion Status**: ✅ Complete refactor implemented and committed
+**Session Duration**: Config file creation investigation + GLM configuration implementation
+**Primary Focus**: Understanding what creates configuration files in `~/.claude/`
+**Completion Status**: ✅ Investigation complete, documentation created
 
 ### 🎯 Session Achievements
+
+#### 1. Claude CLI Config Files Investigation
+- **RESEARCHED**: What creates config files in `~/.claude/` directory
+- **Finding**: **Claude Code CLI itself** creates these files, NOT project scripts
+- **Investigated scripts**: glm-launch.sh, docker-entrypoint.sh, Dockerfile, setup-glm-config.sh
+- **Conclusion**: Project scripts only create directories and mount volumes - file creation is done by Claude Code CLI
+
+#### 2. Documentation Created
+- **NEW FILE**: `docs/CLAUDE_CLI_CONFIG_FILES.md` - Comprehensive documentation of auto-created files
+- Documents all 4 auto-created files:
+  * `.claude.json` - User identity and session state
+  * `.credentials.json` - OAuth authentication tokens
+  * `settings.json` - API configuration
+  * `history.jsonl` - Chat history
+- Includes file structures, creation order, security considerations, and backup recommendations
+
+#### 3. GLM Project-Specific Configuration
+- **COMPLETED**: Project-level GLM settings isolation (commit 951dc97)
+- Elegant architecture using only 2 volume mounts:
+  * `~/.claude:/root/.claude` (system files)
+  * `$(pwd):/workspace` (project files including ./.claude/)
+- Project settings automatically override user settings via Claude Code's built-in precedence
+
+#### 4. Key Finding: Scripts Don't Create Files
+
+**What was discovered:**
+| Script | File Operations |
+|--------|-----------------|
+| `glm-launch.sh` | Only `mkdir -p "$CLAUDE_HOME"` - NO file creation |
+| `docker-entrypoint.sh` | Only runs Claude Code - NO file creation |
+| `Dockerfile` | Only installs packages - NO file creation |
+| `setup-glm-config.sh` | Creates `./.claude/settings.json` (PROJECT dir) |
+
+**Who actually creates `~/.claude/` files:**
+- Claude Code CLI on first run (automatic)
+- System Claude installation (initial setup)
+- Manual user actions
+
+---
+
+## 🔄 PREVIOUS SESSION - Morning 2025-12-23
+
+**Session Focus**: Container lifecycle management refactor
+**Completion Status**: ✅ Complete refactor implemented and committed (3f0d3e1)
+
+### Achievements from Previous Session
 
 #### 1. Smart Entrypoint System (docker-entrypoint.sh)
 - **NEW FILE**: Intelligent container entrypoint with mode-based behavior

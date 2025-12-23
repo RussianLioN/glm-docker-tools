@@ -396,6 +396,7 @@ docker exec -it claude-debug du -sh /root/.claude
 #### 📖 Getting Started
 - **[🚀 Quick Start Guide](#-quick-start)** - Get running in 5 minutes
 - **[🌐 Z.AI API Integration](./docs/Claude-Code-GLM.md)** - GLM API setup and configuration
+- **[📄 Claude CLI Config Files](./docs/CLAUDE_CLI_CONFIG_FILES.md)** - **NEW** - Auto-created files explained
 - **[⚙️ Configuration Guide](./docs/USAGE_GUIDE.md)** - Daily operations and workflows
 
 #### 🏗️ Architecture & Design
