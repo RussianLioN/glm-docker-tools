@@ -1,11 +1,87 @@
 # Session Handoff Documentation
 
-## 🔄 Session Completion and Handoff
+---
 
-**Session Date**: 2025-12-22
-**Session Duration**: Extended session covering nano editor integration
-**Primary Focus**: External editor integration for Claude Code development workflow
-**Completion Status**: ✅ Nano editor fully integrated and tested
+## 🔄 CURRENT SESSION - 2025-12-23
+
+**Session Date**: 2025-12-23
+**Session Duration**: Container lifecycle management refactor
+**Primary Focus**: Universal container launch architecture with smart entrypoint system
+**Completion Status**: ✅ Complete refactor implemented and committed
+
+### 🎯 Session Achievements
+
+#### 1. Smart Entrypoint System (docker-entrypoint.sh)
+- **NEW FILE**: Intelligent container entrypoint with mode-based behavior
+- Three operation modes controlled by `CLAUDE_LAUNCH_MODE` environment variable:
+  * `debug`: Run Claude → exec /bin/bash → container stops on shell exit
+  * `nodebug`: Run Claude → container stops immediately (resource-efficient)
+  * `autodel`: Run Claude → container removed (default behavior)
+
+#### 2. Shell Access Utility (scripts/shell-access.sh)
+- **NEW FILE**: Convenient shell access for stopped containers
+- Automatically manages container lifecycle: start → shell → stop
+- Single command replaces manual docker start/exec/stop workflow
+
+#### 3. Universal Container Architecture
+- **Removed**: Complex dual-path execution (docker create + docker start)
+- **Added**: Universal docker run pattern for all modes
+- **Benefit**: Simpler code, easier debugging, consistent behavior
+
+#### 4. Container Naming Convention
+- Standard: `glm-docker-{timestamp}` (auto-delete)
+- Debug: `glm-docker-debug-{timestamp}` (persistent)
+- No-del: `glm-docker-nodebug-{timestamp}` (persistent)
+
+#### 5. Bug Fixes
+- Fixed double Claude execution (removed redundant "claude" argument)
+- Fixed debug mode shell access (user now automatically enters shell after Claude)
+- Fixed container naming (removed hardcoded "claude-debug" name)
+- Proper exit code handling
+
+### 📊 Mode Behavior Matrix
+
+| Mode | Docker Flags | State After Claude | Memory | Shell Access |
+|------|--------------|-------------------|--------|--------------|
+| Standard | --rm | Removed | ~0MB | N/A |
+| Debug | none | Running → Stops on shell exit | ~0-50MB | Auto-enter after Claude |
+| No-del | none | Stopped | ~0MB | Via shell-access.sh |
+
+### 📚 Documentation Updates
+
+| File | Changes |
+|------|---------|
+| `README.md` | Version 1.2.0, revised lifecycle table, added workflows |
+| `docs/CONTAINER_LIFECYCLE_MANAGEMENT.md` | Complete rewrite of mode descriptions |
+| `scripts/README.md` | Added shell-access.sh documentation |
+| `Dockerfile` | Added entrypoint, version 1.1.0 |
+| `glm-launch.sh` | Universal docker run, CLAUDE_LAUNCH_MODE |
+
+### 🔧 Technical Implementation
+
+```bash
+# Universal docker run pattern for all modes
+docker run -it \
+  --name glm-docker-{mode}-{timestamp} \
+  [-v] --rm \  # Only for standard mode
+  -v ~/.claude:/root/.claude \
+  -v $(pwd):/workspace \
+  -e CLAUDE_LAUNCH_MODE={debug|nodebug|autodel} \
+  glm-docker-tools:latest
+```
+
+### ✅ Session Deliverables
+
+1. **docker-entrypoint.sh** - Smart entrypoint with mode-based behavior
+2. **scripts/shell-access.sh** - Shell access utility for stopped containers
+3. **glm-launch.sh** - Updated launcher with CLAUDE_LAUNCH_MODE
+4. **Dockerfile** - Version 1.1.0 with entrypoint
+5. **Updated documentation** - All relevant files updated
+6. **Commit 3f0d3e1** - "feat: Implement universal container lifecycle management"
+
+---
+
+## 🔄 PREVIOUS SESSIONS ARCHIVE
 
 ---
 
@@ -54,79 +130,81 @@
 ### Repository Structure
 
 ```
-claude-code-docker/
+glm-docker-tools/
+├── docker-entrypoint.sh                 # ⭐ NEW: Smart container entrypoint
+├── scripts/shell-access.sh              # ⭐ NEW: Shell access utility
 ├── DOCKER_AUTHENTICATION_RESEARCH.md    # 🔬 Comprehensive research findings
 ├── PRACTICAL_EXPERIMENTS_PLAN.md         # 🧪 Experiment validation plan
 ├── SESSION_HANDOFF.md                   # 📋 This handoff document
 ├── CLAUDE.md                            # 📚 Updated main documentation
-├── Dockerfile                           # 🐳 Enhanced with timezone fix
-├── claude-launch.sh                     # 🚀 Launcher script
+├── README.md                            # 🏠 Main project hub (v1.2.0)
+├── Dockerfile                           # 🐳 Enhanced with entrypoint (v1.1.0)
+├── glm-launch.sh                        # 🚀 Universal launcher script
 ├── docker-compose.yml                   # 📦 Container orchestration
-├── .claude/settings.json                # ⚙️ Project configuration
-├── Claude-Code-GLM.md                   # 🌐 Z.AI API integration guide
-└── Claude-Code-Docs.md                  # 📖 Documentation index
+├── docs/CONTAINER_LIFECYCLE_MANAGEMENT.md # 🔄 Lifecycle management guide
+├── scripts/README.md                    # 🔧 Scripts documentation
+└── .claude/settings.template.json       # ⚙️ Configuration template
 ```
-
-### Working Container
-
-- **Name**: `claude-debug`
-- **Image**: `claude-code-docker:latest` (with timezone fix)
-- **Status**: Running with synchronized timezone
-- **Authentication**: OAuth completed, session active
-- **Volume Mapping**: `.claude:/root/.claude`
 
 ### Configuration Status
 
 ```yaml
 Current Configuration:
-✅ Timezone: Europe/Moscow (synchronized)
-✅ Docker Image: Built with tzdata
-✅ Volume Mapping: Unified .claude directory
-✅ Authentication: OAuth tokens active
-✅ Documentation: Comprehensive research available
-⏳ Experiments: Planned but not executed
+✅ Container Lifecycle: Three-mode system (debug/no-del/autodel)
+✅ Smart Entrypoint: Mode-based behavior via CLAUDE_LAUNCH_MODE
+✅ Shell Access Utility: scripts/shell-access.sh for stopped containers
+✅ Docker Image: v1.1.0 with universal entrypoint
+✅ Documentation: v1.2.0 with complete lifecycle guide
+✅ Universal Architecture: Single docker run pattern for all modes
+⏳ Experiments: OAuth priority, volume mapping validation planned
 ```
 
 ---
 
 ## 🔄 Next Session Priorities
 
-### Immediate Actions - ✅ STATUS UPDATE
+### Immediate Actions
 
 1. **Execute Practical Experiments**:
-   - ✅ **COMPLETED**: Run volume mapping identity verification (99%+ confidence)
-   - ✅ **COMPLETED**: Test OAuth vs API priority (OAuth confirmed with subscriptionType: "pro")
+   - ⏳ **TODO**: Run volume mapping identity verification (99%+ confidence)
+   - ⏳ **TODO**: Test OAuth vs API priority
    - ⏳ **TODO**: Validate token refresh mechanism
-   - ✅ **COMPLETED**: Document results with confidence levels
+   - ⏳ **TODO**: Document results with confidence levels
 
 2. **Complete Research Validation**:
-   - ✅ **COMPLETED**: Verify theoretical findings with practical tests
+   - ⏳ **TODO**: Verify theoretical findings with practical tests
    - ⏳ **TODO**: Update research document with experimental results
-   - ✅ **COMPLETED**: Adjust confidence levels based on validation
+   - ⏳ **TODO**: Adjust confidence levels based on validation
 
 3. **Production Readiness**:
    - ⏳ **TODO**: Create production deployment guide
    - ✅ **COMPLETED**: Implement security best practices
    - ⏳ **TODO**: Develop monitoring and alerting
 
-### NEW Development Enhancements (Added after comprehensive audit)
+### Completed Development Enhancements
 
-4. **External Editor Integration** (Priority: HIGH - NEW)
+4. **Container Lifecycle Management** (Priority: HIGH - ✅ COMPLETED 2025-12-23)
+   - ✅ **COMPLETED**: Smart entrypoint system with three modes
+   - ✅ **COMPLETED**: Universal docker run pattern for all modes
+   - ✅ **COMPLETED**: Shell access utility (scripts/shell-access.sh)
+   - ✅ **COMPLETED**: Fixed double Claude execution bug
+   - ✅ **COMPLETED**: Fixed container naming convention
+   - ✅ **COMPLETED**: Documentation updated (v1.2.0)
+   - ✅ **COMPLETED**: Docker image rebuilt (v1.1.0)
+
+5. **External Editor Integration** (Priority: HIGH - ✅ COMPLETED 2025-12-22)
    - ✅ **COMPLETED**: Configure nano as external editor for Claude Code
-   - **Objective**: ✅ Enable seamless file editing within Claude Code environment
-   - **Implementation**: ✅ Add nano to Docker image and configure Claude editor settings
-   - **Success Criteria**: ✅ Can edit files directly from Claude interface
-   - **Impact**: ✅ Significantly improves development workflow efficiency
-   - **Testing**: ✅ 100% success rate on automated integration tests
-   - **User Validation**: ✅ Manual testing confirms seamless Claude Code ↔ nano integration
-   - **Documentation**: ✅ Complete guide available at docs/NANO_EDITOR_SETUP.md
+   - ✅ **COMPLETED**: Add nano to Docker image and configure Claude editor settings
+   - ✅ **COMPLETED**: Can edit files directly from Claude interface
+   - ✅ **COMPLETED**: 100% success rate on automated integration tests
+   - ✅ **COMPLETED**: Complete guide available at docs/NANO_EDITOR_SETUP.md
 
-### Medium-term Goals - ✅ STATUS UPDATE
+### Medium-term Goals
 
-1. **Multi-Container Strategies**: ✅ **COMPLETED** - launch-multiple.sh implemented and tested
+1. **Multi-Container Strategies**: ✅ **COMPLETED** - glm-launch.sh supports multiple modes
 2. **Performance Optimization**: ⏳ **TODO** - Measure and optimize authentication overhead
 3. **Cross-Platform Testing**: ⏳ **TODO** - Verify across different environments
-4. **Automation**: ✅ **COMPLETED** - glm-launch.sh and launch-multiple.sh developed
+4. **Automation**: ✅ **COMPLETED** - glm-launch.sh with --debug and --no-del modes
 
 ---
 
@@ -418,14 +496,43 @@ docker exec claude-debug sh -c "
 
 ## ✅ Session Completion Confirmation
 
-**Research Phase**: ✅ COMPLETED
-**Infrastructure Setup**: ✅ COMPLETED
-**Documentation Enhancement**: ✅ COMPLETED
-**Experiment Planning**: ✅ COMPLETED
-**Practical Validation**: ⏳ READY FOR NEXT SESSION
+### Current Session (2025-12-23)
+**Container Lifecycle Management**: ✅ COMPLETED
+**Smart Entrypoint System**: ✅ COMPLETED
+**Shell Access Utility**: ✅ COMPLETED
+**Universal Architecture**: ✅ COMPLETED
+**Documentation Updates**: ✅ COMPLETED
+**Commit & Push**: ✅ COMPLETED (3f0d3e1)
 
-**Overall Progress**: 80% Complete
-**Next Major Milestone**: Practical validation and production readiness
+### Overall Project Progress
+
+| Component | Status | Completion |
+|-----------|--------|------------|
+| Docker Infrastructure | ✅ Complete | 100% |
+| Authentication Research | ✅ Complete | 100% |
+| Container Lifecycle | ✅ Complete | 100% |
+| Nano Editor Integration | ✅ Complete | 100% |
+| Documentation | ✅ Complete | 95% |
+| Security Best Practices | ✅ Complete | 100% |
+| Production Deployment Guide | ⏳ Pending | 0% |
+| Practical Experiments | ⏳ Pending | 0% |
+| Monitoring/Alerting | ⏳ Pending | 0% |
+
+**Overall Progress**: ~85% Complete
+**Next Major Milestones**: Practical experiments, production deployment guide
+
+### Next Session Quick Start
+
+```bash
+# Option 1: Execute practical experiments
+./scripts/experiments/run-all.sh
+
+# Option 2: Create production deployment guide
+vim docs/PRODUCTION_DEPLOYMENT.md
+
+# Option 3: Add monitoring and alerting
+vim docs/MONITORING_SETUP.md
+```
 
 ---
 
