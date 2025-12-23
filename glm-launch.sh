@@ -224,16 +224,25 @@ run_claude() {
     fi
 
     # Проверка конфигурации перед запуском
-    if [[ -f "$CLAUDE_HOME/settings.json" ]]; then
-        log_success "Найден конфигурационный файл: $CLAUDE_HOME/settings.json"
-        ls -la "$CLAUDE_HOME/settings.json"
-        echo "Содержимое (только API настройки):"
-        grep -E "(ANTHROPIC_AUTH_TOKEN|ANTHROPIC_BASE_URL|ANTHROPIC_API_KEY)" "$CLAUDE_HOME/settings.json" || echo "Прямых API настроек не найдено"
+    echo
+    # Check for project GLM settings (Claude Code will find these automatically at /workspace/.claude/)
+    if [[ -f "./.claude/settings.json" ]]; then
+        log_success "🎯 Project GLM configuration detected"
+        log_info "  Location: ./.claude/settings.json"
+        log_info "  Container path: /workspace/.claude/settings.json"
+        echo "  GLM API Configuration:"
+        grep "ANTHROPIC_BASE_URL" "./.claude/settings.json" 2>/dev/null | sed 's/^/    /' || echo "    (unable to read)"
+        echo
+        log_info "  ⚠️  Project settings will override user settings in ~/.claude/"
+        log_info "  ✓ OAuth tokens and chat history remain shared"
+    elif [[ -f "$CLAUDE_HOME/settings.json" ]]; then
+        log_info "No project settings found (will use user settings from ~/.claude/)"
+        log_info "  Create project config: ./scripts/setup-glm-config.sh"
     else
-        log_warning "Конфигурационный файл не найден: $CLAUDE_HOME/settings.json"
-        log_info "Доступные файлы в CLAUDE_HOME:"
-        ls -la "$CLAUDE_HOME" | head -10
+        log_warning "No configuration found in system or project"
+        log_info "  Create project config: ./scripts/setup-glm-config.sh"
     fi
+    echo
 
     # Универсальный запуск контейнера для всех режимов
     local docker_exit_code=0

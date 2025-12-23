@@ -1,8 +1,11 @@
 # Claude Code - Security Critical Files
 # NEVER commit authentication credentials, tokens, or user data
-.claude/.credentials.json
-.claude/settings.json
-.claude/.claude.json
+
+# Project-level GLM configuration (overrides system settings)
+.claude/settings.json          # GLM API configuration with tokens
+.claude/settings.local.json    # Local project overrides
+.claude/.credentials.json      # OAuth tokens (shared with system)
+.claude/.claude.json           # User identity
 .claude/.claude.json.backup
 claude.bak/
 .claude/history.jsonl

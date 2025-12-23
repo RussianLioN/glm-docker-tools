@@ -109,6 +109,57 @@ docker run -it \
 
 > 💡 **推荐**: Use standard mode for everyday work (auto-cleanup), switch to `--debug` when troubleshooting issues.
 
+## 🌐 GLM Configuration
+
+### Project-Specific GLM Settings
+
+The project supports **project-specific GLM API configuration** that automatically overrides system Anthropic settings while preserving shared OAuth tokens and chat history.
+
+**How it works:**
+- Create `./.claude/settings.json` in your project directory
+- Claude Code **automatically finds** it at `/workspace/.claude/settings.json` inside the container
+- Project settings **override** user settings in `~/.claude/settings.json`
+- OAuth tokens and chat history remain **shared**
+
+### Quick Setup
+
+```bash
+# Run interactive setup
+./scripts/setup-glm-config.sh
+
+# Or manually create
+mkdir -p ./.claude
+cp .claude/settings.template.json .claude/settings.json
+nano .claude/settings.json
+```
+
+### Architecture
+
+```
+Host:                    Container:
+~/.claude/          →     /root/.claude        (OAuth, history - shared)
+./.claude/settings.json → /workspace/.claude/settings.json (GLM config)
+```
+
+### Configuration Precedence
+
+Claude Code automatically applies settings in this order:
+1. `./.claude/settings.local.json` (local overrides)
+2. `./.claude/settings.json` (project GLM config) ⭐
+3. `~/.claude/settings.json` (user settings)
+
+**Result**: Your GLM API config is used automatically!
+
+### Files
+
+| File | Purpose | Git Tracked |
+|------|---------|-------------|
+| `.claude/settings.template.json` | Template for setup | ✅ Yes |
+| `.claude/settings.json` | Your GLM API config | ❌ No (gitignored) |
+| `.claude/settings.local.json` | Local overrides | ❌ No (gitignored) |
+
+> 📖 **See**: [GLM Configuration Guide](./docs/GLM_CONFIGURATION_GUIDE.md) for complete documentation
+
 ## 🐛 Debugging Guide
 
 ### Container Lifecycle Management
