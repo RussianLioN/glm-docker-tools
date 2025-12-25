@@ -253,6 +253,8 @@ Since this is a documentation repository, common tasks include:
 - **📝 [Configuration Template](./.claude/settings.template.json)** - Safe settings template
 
 ### Advanced Topics
+- **🏆 [Expert Consensus Review](./docs/EXPERT_CONSENSUS_REVIEW.md)** - **NEW** 11-expert panel review with 7 critical improvements
+- **📝 [Implementation Plan](./docs/IMPLEMENTATION_PLAN.md)** - **NEW** Detailed roadmap for all improvements
 - **🧪 [Experiments Plan](./PRACTICAL_EXPERIMENTS_PLAN.md)** - Validation procedures and testing
 - **🔍 [Expert Analysis](./docs/EXPERT_ANALYSIS.md)** - Technical deep-dive and insights
 - **📋 [Session Handoff](./SESSION_HANDOFF.md)** - Project status and next steps

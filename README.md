@@ -419,6 +419,8 @@ docker exec -it claude-debug du -sh /root/.claude
 - **[🚀 Launcher Script](./claude-launch.sh)** - Container deployment automation
 
 #### 🔬 Research & Validation
+- **[🏆 Expert Consensus Review](./docs/EXPERT_CONSENSUS_REVIEW.md)** - **NEW** 11-expert panel review with 7 critical improvements
+- **[📝 Implementation Plan](./docs/IMPLEMENTATION_PLAN.md)** - **NEW** Detailed roadmap for implementing improvements
 - **[🧪 Experiments Plan](./PRACTICAL_EXPERIMENTS_PLAN.md)** - Validation procedures and testing
 - **[📋 Session Handoff](./SESSION_HANDOFF.md)** - Project status and next steps
 - **[🤖 System Instructions](./docs/system-instruction.md)** - AI methodology and prompts
