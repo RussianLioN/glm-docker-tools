@@ -1,0 +1,980 @@
+# План реализации улучшений GLM Docker Tools
+
+> 📚 **Навигация**: [Home](../README.md) > [Expert Review](./EXPERT_CONSENSUS_REVIEW.md) > **Implementation Plan**
+
+---
+
+## 📋 Обзор плана
+
+Этот документ содержит детальный план реализации **7 критических улучшений**, выявленных консилиумом из 11 экспертов.
+
+**📌 Связанные документы**:
+- **[🏆 Expert Consensus Review](./EXPERT_CONSENSUS_REVIEW.md)** - Полный анализ экспертов с обоснованием улучшений
+- **[📋 Session Handoff](../SESSION_HANDOFF.md)** - Текущий статус проекта
+- **[🎯 Project Review](./PROJECT_REVIEW.md)** - Общий обзор проекта
+- **[📚 CLAUDE.md](../CLAUDE.md)** - Инструкции для Claude Code
+
+---
+
+## 🎯 Стратегия реализации
+
+### Приоритизация
+
+| Фаза | Улучшения | Приоритет | Оценка времени | Влияние |
+|------|-----------|-----------|----------------|---------|
+| **Фаза 1** | P1, P2, P3 | КРИТИЧЕСКИЙ | 4-6 часов | Устранение критических проблем |
+| **Фаза 2** | P4, P5 | ВЫСОКИЙ | 3-4 часа | Улучшение надежности и удобства |
+| **Фаза 3** | P6, P7 | СРЕДНИЙ | 4-5 часов | Продвинутые функции |
+
+**Общее время реализации**: 11-15 часов
+
+### Подход
+
+1. **Поэтапная реализация**: Каждая фаза тестируется независимо
+2. **Коммиты после каждого улучшения**: Для отслеживания прогресса и возможности отката
+3. **Полное тестирование**: После каждой фазы
+4. **Обновление документации**: Параллельно с реализацией
+
+---
+
+## 🔥 ФАЗА 1: Критические исправления (ПРИОРИТЕТ 1)
+
+### P1: Автоматическая сборка Docker-образа
+
+#### 📝 Описание
+Добавить автоматическую проверку наличия образа и его сборку, если отсутствует.
+
+#### 📂 Файлы для изменения
+- **glm-launch.sh** - Добавить функцию `ensure_image()` после строки 100
+
+#### 🔧 Реализация
+
+**Шаг 1**: Добавить функцию `ensure_image()` после функции `check_dependencies()`:
+
+```bash
+# Ensure Docker image exists (build if necessary)
+ensure_image() {
+    log_info "🔍 Проверка наличия Docker-образа: $IMAGE"
+
+    if ! docker image inspect "$IMAGE" &> /dev/null; then
+        log_info "🏗️  Образ $IMAGE не найден. Начинаю сборку..."
+
+        local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+        if [[ ! -f "$script_dir/Dockerfile" ]]; then
+            log_error "❌ Dockerfile не найден: $script_dir/Dockerfile"
+            exit 1
+        fi
+
+        log_info "📦 Запуск docker build -t $IMAGE $script_dir"
+        if ! docker build -t "$IMAGE" "$script_dir"; then
+            log_error "❌ Ошибка сборки образа"
+            exit 1
+        fi
+
+        log_success "✅ Образ успешно собран: $IMAGE"
+    else
+        log_success "✅ Образ найден: $IMAGE"
+    fi
+}
+```
+
+**Шаг 2**: Вызвать функцию в основном коде (после строки ~323, перед `setup_volume_mounts`):
+
+```bash
+# Check dependencies first
+check_dependencies
+
+# Ensure image exists
+ensure_image
+
+# Setup volume mounts
+setup_volume_mounts
+```
+
+#### ✅ Критерии тестирования
+
+1. **Тест 1: Образ существует**
+   ```bash
+   # Убедиться что образ существует
+   docker images | grep glm-docker-tools
+   # Запустить скрипт
+   ./glm-launch.sh
+   # Ожидаемый результат: "✅ Образ найден: glm-docker-tools:latest"
+   ```
+
+2. **Тест 2: Образ отсутствует**
+   ```bash
+   # Удалить образ
+   docker rmi glm-docker-tools:latest
+   # Запустить скрипт
+   ./glm-launch.sh
+   # Ожидаемый результат: Автоматическая сборка → "✅ Образ успешно собран"
+   ```
+
+3. **Тест 3: Отсутствует Dockerfile**
+   ```bash
+   # Временно переименовать Dockerfile
+   mv Dockerfile Dockerfile.bak
+   docker rmi glm-docker-tools:latest
+   ./glm-launch.sh
+   # Ожидаемый результат: "❌ Dockerfile не найден" + exit 1
+   mv Dockerfile.bak Dockerfile
+   ```
+
+#### 📊 Критерии успеха
+- ✅ Автоматическая сборка при отсутствии образа
+- ✅ Корректное сообщение об ошибке при отсутствии Dockerfile
+- ✅ Никаких изменений в поведении при наличии образа
+
+---
+
+### P2: Обработка сигналов и cleanup
+
+#### 📝 Описание
+Добавить trap-обработчики для корректной очистки при прерывании (Ctrl+C, SIGTERM).
+
+#### 📂 Файлы для изменения
+- **glm-launch.sh** - Добавить обработчики в начало скрипта (после строки 30)
+
+#### 🔧 Реализация
+
+**Шаг 1**: Добавить глобальные переменные после строки 33 (после `IMAGE="glm-docker-tools:latest"`):
+
+```bash
+IMAGE="glm-docker-tools:latest"
+
+# Global variables for cleanup
+CONTAINER_NAME=""
+CLEANUP_DONE=false
+```
+
+**Шаг 2**: Добавить функцию cleanup после переменных:
+
+```bash
+# Cleanup function for signal handling
+cleanup() {
+    # Prevent multiple cleanup calls
+    if [[ "$CLEANUP_DONE" == "true" ]]; then
+        return 0
+    fi
+    CLEANUP_DONE=true
+
+    local exit_code=$?
+
+    if [[ -n "$CONTAINER_NAME" ]]; then
+        log_info "🧹 Очистка контейнера: $CONTAINER_NAME"
+
+        # Stop container if running
+        if docker ps -q --filter "name=$CONTAINER_NAME" &>/dev/null; then
+            docker stop "$CONTAINER_NAME" 2>/dev/null || true
+        fi
+
+        # Remove container if not in debug or no-del mode
+        if [[ "${DEBUG_MODE:-false}" == "false" && "${NO_DEL_MODE:-false}" == "false" ]]; then
+            docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
+            log_info "🗑️  Контейнер удален: $CONTAINER_NAME"
+        else
+            log_info "💾 Контейнер сохранен для отладки: $CONTAINER_NAME"
+        fi
+    fi
+
+    exit $exit_code
+}
+```
+
+**Шаг 3**: Добавить trap-обработчики после функции cleanup:
+
+```bash
+# Setup signal handlers
+trap cleanup EXIT
+trap 'echo ""; log_warning "⚠️  Прервано пользователем (Ctrl+C)"; cleanup; exit 130' INT
+trap 'log_error "❌ Получен сигнал TERM"; cleanup; exit 143' TERM
+```
+
+**Шаг 4**: Обновить создание имени контейнера (около строки 330):
+
+```bash
+# Generate container name and store in global variable
+CONTAINER_NAME="${BASE_NAME}-${TIMESTAMP}"
+log_info "📦 Имя контейнера: $CONTAINER_NAME"
+```
+
+#### ✅ Критерии тестирования
+
+1. **Тест 1: Нормальное завершение**
+   ```bash
+   ./glm-launch.sh
+   # Выйти из Claude нормально
+   # Ожидаемый результат: Контейнер удален (если не --debug/--no-del)
+   ```
+
+2. **Тест 2: Прерывание Ctrl+C**
+   ```bash
+   ./glm-launch.sh &
+   # Дождаться запуска контейнера
+   # Нажать Ctrl+C
+   # Ожидаемый результат: "⚠️ Прервано пользователем" + cleanup
+   docker ps -a | grep glm-docker
+   # Контейнер должен быть удален
+   ```
+
+3. **Тест 3: SIGTERM**
+   ```bash
+   ./glm-launch.sh &
+   PID=$!
+   sleep 5
+   kill -TERM $PID
+   # Ожидаемый результат: "❌ Получен сигнал TERM" + cleanup
+   ```
+
+4. **Тест 4: Debug режим**
+   ```bash
+   ./glm-launch.sh --debug &
+   # Нажать Ctrl+C
+   # Ожидаемый результат: Контейнер НЕ удален + "💾 Контейнер сохранен"
+   docker ps -a | grep glm-docker-debug
+   # Контейнер должен существовать
+   ```
+
+#### 📊 Критерии успеха
+- ✅ Корректная очистка при Ctrl+C
+- ✅ Корректная очистка при SIGTERM
+- ✅ Сохранение контейнеров в debug/no-del режимах
+- ✅ Никаких "зомби" контейнеров после прерывания
+
+---
+
+### P3: Унификация имен Docker-образов
+
+#### 📝 Описание
+Привести все имена образов в проекте к единому стандарту: `glm-docker-tools:latest`
+
+#### 📂 Файлы для изменения
+1. **docker-compose.yml** (строка 5)
+2. **scripts/test-claude.sh** (строка 18)
+3. **scripts/launch-multiple.sh** (строка 9)
+4. **glm-launch.sh** (строка 54 - help text)
+
+#### 🔧 Реализация
+
+**Файл 1: docker-compose.yml (строка 5)**
+```yaml
+# До:
+    image: anthropic/claude-code:latest
+
+# После:
+    image: glm-docker-tools:latest
+```
+
+**Файл 2: scripts/test-claude.sh (строка 18)**
+```bash
+# До:
+IMAGE="${DOCKER_IMAGE:-anthropic/claude-code:latest}"
+
+# После:
+IMAGE="${DOCKER_IMAGE:-glm-docker-tools:latest}"
+```
+
+**Файл 3: scripts/launch-multiple.sh (строка 9)**
+```bash
+# До:
+IMAGE="claude-code-docker:latest"
+
+# После:
+IMAGE="glm-docker-tools:latest"
+```
+
+**Файл 4: glm-launch.sh (строка 54 - help text)**
+```bash
+# До:
+  Uses: claude-code-tools:latest
+
+# После:
+  Uses: glm-docker-tools:latest
+```
+
+#### ✅ Критерии тестирования
+
+1. **Тест 1: Grep проверка**
+   ```bash
+   # Поиск всех упоминаний образов в проекте
+   grep -r "anthropic/claude-code" .
+   grep -r "claude-code-docker" .
+   grep -r "claude-code-tools" .
+   # Ожидаемый результат: Ничего не найдено
+
+   grep -r "glm-docker-tools:latest" .
+   # Ожидаемый результат: Все файлы используют единое имя
+   ```
+
+2. **Тест 2: Docker Compose**
+   ```bash
+   docker-compose config | grep image
+   # Ожидаемый результат: "image: glm-docker-tools:latest"
+   ```
+
+3. **Тест 3: Запуск скриптов**
+   ```bash
+   ./glm-launch.sh --help
+   # Проверить что в help указан правильный образ
+
+   ./scripts/test-claude.sh
+   # Проверить что используется glm-docker-tools:latest
+   ```
+
+#### 📊 Критерии успеха
+- ✅ Единое имя образа во всех файлах
+- ✅ Никаких ссылок на старые имена
+- ✅ Все скрипты работают с новым именем
+
+---
+
+## 🚀 ФАЗА 2: Высокоприоритетные улучшения
+
+### P4: Кросс-платформенная совместимость
+
+#### 📝 Описание
+Заменить macOS-специфичную команду `stat -f%z` на кросс-платформенную функцию.
+
+#### 📂 Файлы для изменения
+- **glm-launch.sh** (строка 137)
+
+#### 🔧 Реализация
+
+**Шаг 1**: Добавить функцию `get_file_size()` после функции `log_*` (около строки 80):
+
+```bash
+# Cross-platform file size function
+get_file_size() {
+    local file="$1"
+    case "$OSTYPE" in
+        darwin*)
+            stat -f%z "$file" 2>/dev/null || echo "0"
+            ;;
+        linux*)
+            stat -c%s "$file" 2>/dev/null || echo "0"
+            ;;
+        *)
+            # Fallback for other systems
+            find "$file" -printf "%s" 2>/dev/null || echo "0"
+            ;;
+    esac
+}
+```
+
+**Шаг 2**: Заменить использование `stat -f%z` на строке 137:
+
+```bash
+# До:
+local size=$(stat -f%z "$settings_file" 2>/dev/null || echo "0")
+
+# После:
+local size=$(get_file_size "$settings_file")
+```
+
+#### ✅ Критерии тестирования
+
+1. **Тест 1: macOS**
+   ```bash
+   # На macOS
+   ./glm-launch.sh
+   # Ожидаемый результат: Нормальная работа, файлы определяются
+   ```
+
+2. **Тест 2: Linux**
+   ```bash
+   # На Linux (или в Linux контейнере)
+   docker run --rm -v $(pwd):/workspace alpine sh -c "
+     apk add bash
+     cd /workspace
+     bash ./glm-launch.sh --help
+   "
+   # Ожидаемый результат: Нормальная работа
+   ```
+
+3. **Тест 3: Проверка размера файла**
+   ```bash
+   # Создать тестовый файл
+   echo "test" > /tmp/test.txt
+   # В скрипте добавить временный вызов
+   get_file_size /tmp/test.txt
+   # Должно вернуть 5 (4 символа + newline)
+   ```
+
+#### 📊 Критерии успеха
+- ✅ Работает на macOS
+- ✅ Работает на Linux
+- ✅ Корректно определяет размер файлов
+- ✅ Fallback для других систем
+
+---
+
+### P5: Улучшенное логирование
+
+#### 📝 Описание
+Добавить структурированное JSON-логирование с метриками и опциональный вывод в файл.
+
+#### 📂 Файлы для изменения
+- **glm-launch.sh** - Расширить функции логирования (после строки 50)
+
+#### 🔧 Реализация
+
+**Шаг 1**: Добавить переменные конфигурации после строки 33:
+
+```bash
+# Logging configuration
+LOG_LEVEL="${CLAUDE_LOG_LEVEL:-INFO}"
+LOG_FORMAT="${CLAUDE_LOG_FORMAT:-text}"  # text or json
+LOG_FILE="${CLAUDE_LOG_FILE:-}"  # empty = no file logging
+START_TIME=$(date +%s)
+```
+
+**Шаг 2**: Обновить функции логирования:
+
+```bash
+# Enhanced logging functions
+log_message() {
+    local level="$1"
+    local message="$2"
+    local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    local elapsed=$(($(date +%s) - START_TIME))
+
+    if [[ "$LOG_FORMAT" == "json" ]]; then
+        local json_log=$(cat <<EOF
+{"timestamp":"$timestamp","level":"$level","message":"$message","elapsed_seconds":$elapsed,"container":"${CONTAINER_NAME:-none}"}
+EOF
+)
+        echo "$json_log"
+        [[ -n "$LOG_FILE" ]] && echo "$json_log" >> "$LOG_FILE"
+    else
+        # Text format (existing)
+        local color=""
+        case "$level" in
+            INFO)    color="\033[0;36m" ;;  # Cyan
+            SUCCESS) color="\033[0;32m" ;;  # Green
+            WARNING) color="\033[0;33m" ;;  # Yellow
+            ERROR)   color="\033[0;31m" ;;  # Red
+        esac
+        echo -e "${color}[${level}]${NC} $message"
+        [[ -n "$LOG_FILE" ]] && echo "[${timestamp}] [${level}] $message" >> "$LOG_FILE"
+    fi
+}
+
+log_info()    { log_message "INFO" "$1"; }
+log_success() { log_message "SUCCESS" "$1"; }
+log_warning() { log_message "WARNING" "$1"; }
+log_error()   { log_message "ERROR" "$1"; }
+```
+
+**Шаг 3**: Добавить метрики в конце скрипта (перед финальным exit):
+
+```bash
+# Log final metrics
+if [[ "$LOG_FORMAT" == "json" ]]; then
+    local end_time=$(date +%s)
+    local total_time=$((end_time - START_TIME))
+    log_message "INFO" "Session completed. Total time: ${total_time}s"
+fi
+```
+
+**Шаг 4**: Обновить help с новыми переменными:
+
+```bash
+Environment Variables:
+  CLAUDE_LOG_LEVEL=INFO|WARNING|ERROR  - Log level (default: INFO)
+  CLAUDE_LOG_FORMAT=text|json          - Log format (default: text)
+  CLAUDE_LOG_FILE=/path/to/file        - Log file path (optional)
+```
+
+#### ✅ Критерии тестирования
+
+1. **Тест 1: Text логирование (по умолчанию)**
+   ```bash
+   ./glm-launch.sh
+   # Ожидаемый результат: Цветной текстовый вывод
+   ```
+
+2. **Тест 2: JSON логирование**
+   ```bash
+   CLAUDE_LOG_FORMAT=json ./glm-launch.sh
+   # Ожидаемый результат: JSON-строки в stdout
+   ```
+
+3. **Тест 3: Логирование в файл**
+   ```bash
+   CLAUDE_LOG_FILE=/tmp/glm.log ./glm-launch.sh
+   cat /tmp/glm.log
+   # Ожидаемый результат: Логи в файле
+   ```
+
+4. **Тест 4: JSON + файл**
+   ```bash
+   CLAUDE_LOG_FORMAT=json CLAUDE_LOG_FILE=/tmp/glm.json ./glm-launch.sh
+   cat /tmp/glm.json | jq .
+   # Ожидаемый результат: Валидный JSON в файле
+   ```
+
+#### 📊 Критерии успеха
+- ✅ Поддержка text и json форматов
+- ✅ Опциональное логирование в файл
+- ✅ Метрики времени выполнения
+- ✅ Обратная совместимость (по умолчанию text)
+
+---
+
+## 🎓 ФАЗА 3: Продвинутые функции
+
+### P6: Pre-flight проверки
+
+#### 📝 Описание
+Добавить валидацию Docker версии и доступного места на диске перед запуском.
+
+#### 📂 Файлы для изменения
+- **glm-launch.sh** - Расширить функцию `check_dependencies()` (строка 101)
+
+#### 🔧 Реализация
+
+**Шаг 1**: Обновить функцию `check_dependencies()`:
+
+```bash
+# Enhanced dependency check with validation
+check_dependencies() {
+    log_info "🔍 Проверка зависимостей..."
+
+    # Check Docker installation
+    if ! command -v docker &> /dev/null; then
+        log_error "❌ Docker не установлен. Установите Docker Desktop: https://docker.com"
+        exit 1
+    fi
+
+    # Check Docker daemon
+    if ! docker info &> /dev/null; then
+        log_error "❌ Docker daemon не запущен. Запустите Docker Desktop."
+        exit 1
+    fi
+
+    # Check Docker version
+    local docker_version=$(docker version --format '{{.Server.Version}}' 2>/dev/null)
+    local min_version="20.10.0"
+
+    if ! version_gte "$docker_version" "$min_version"; then
+        log_warning "⚠️  Docker версии $docker_version < $min_version (рекомендуется обновление)"
+    else
+        log_success "✅ Docker версия: $docker_version"
+    fi
+
+    # Check available disk space
+    local required_space_mb=1000  # 1GB
+    local available_space=$(df -m . | tail -1 | awk '{print $4}')
+
+    if [[ "$available_space" -lt "$required_space_mb" ]]; then
+        log_warning "⚠️  Мало места на диске: ${available_space}MB (рекомендуется ${required_space_mb}MB)"
+    else
+        log_success "✅ Доступно места: ${available_space}MB"
+    fi
+
+    # Check Docker Compose (optional)
+    if command -v docker-compose &> /dev/null; then
+        log_success "✅ Docker Compose установлен"
+    else
+        log_info "ℹ️  Docker Compose не найден (опционально)"
+    fi
+}
+
+# Version comparison function
+version_gte() {
+    local version="$1"
+    local required="$2"
+
+    # Simple version comparison (major.minor.patch)
+    local v1=(${version//./ })
+    local v2=(${required//./ })
+
+    for i in 0 1 2; do
+        local num1=${v1[$i]:-0}
+        local num2=${v2[$i]:-0}
+
+        if [[ $num1 -gt $num2 ]]; then
+            return 0
+        elif [[ $num1 -lt $num2 ]]; then
+            return 1
+        fi
+    done
+
+    return 0  # Equal versions
+}
+```
+
+#### ✅ Критерии тестирования
+
+1. **Тест 1: Все проверки успешны**
+   ```bash
+   ./glm-launch.sh
+   # Ожидаемый результат: ✅ для всех проверок
+   ```
+
+2. **Тест 2: Docker не запущен**
+   ```bash
+   # Остановить Docker Desktop
+   ./glm-launch.sh
+   # Ожидаемый результат: "❌ Docker daemon не запущен"
+   ```
+
+3. **Тест 3: Старая версия Docker**
+   ```bash
+   # Временно подменить вывод docker version
+   # Ожидаемый результат: "⚠️ Docker версии X < 20.10.0"
+   ```
+
+4. **Тест 4: Мало места на диске**
+   ```bash
+   # Проверить на диске с малым объемом
+   # Ожидаемый результат: "⚠️ Мало места на диске"
+   ```
+
+#### 📊 Критерии успеха
+- ✅ Проверка версии Docker
+- ✅ Проверка места на диске
+- ✅ Четкие сообщения об ошибках
+- ✅ Предупреждения, но не блокировка запуска
+
+---
+
+### P7: GitOps конфигурация
+
+#### 📝 Описание
+Добавить поддержку .env файлов для конфигурации вместо хардкода.
+
+#### 📂 Файлы для изменения
+1. **glm-launch.sh** - Добавить загрузку .env (в начало скрипта)
+2. **.env.example** (НОВЫЙ) - Создать шаблон
+
+#### 🔧 Реализация
+
+**Шаг 1**: Добавить загрузку .env в начало glm-launch.sh (после строки 25):
+
+```bash
+set -euo pipefail
+
+# Load environment configuration
+if [[ -f ".env" ]]; then
+    log_info "📝 Загрузка конфигурации из .env"
+    # Load .env with validation
+    while IFS='=' read -r key value; do
+        # Skip comments and empty lines
+        [[ "$key" =~ ^#.*$ || -z "$key" ]] && continue
+
+        # Remove quotes from value
+        value="${value%\"}"
+        value="${value#\"}"
+
+        # Export variable
+        export "$key=$value"
+    done < .env
+fi
+```
+
+**Шаг 2**: Создать файл .env.example:
+
+```bash
+# GLM Docker Tools Configuration
+# Copy this file to .env and customize
+
+# Docker image configuration
+IMAGE_NAME=glm-docker-tools:latest
+IMAGE_TAG=latest
+
+# Container configuration
+CLAUDE_LAUNCH_MODE=autodel  # autodel, debug, nodebug
+
+# Volume mounts
+CLAUDE_HOME=$HOME/.claude
+WORKSPACE=$(pwd)
+
+# Logging configuration
+CLAUDE_LOG_LEVEL=INFO       # INFO, WARNING, ERROR
+CLAUDE_LOG_FORMAT=text      # text, json
+CLAUDE_LOG_FILE=            # Empty = no file logging
+
+# API configuration
+GLM_API_ENDPOINT=https://api.z.ai/api/anthropic
+GLM_DEFAULT_MODEL=glm-4.6
+
+# Resource limits
+CONTAINER_MEMORY_LIMIT=4g
+CONTAINER_CPU_LIMIT=2.0
+
+# Cleanup configuration
+AUTO_CLEANUP_ENABLED=true
+CLEANUP_DAYS=7
+KEEP_LAST_N_CONTAINERS=3
+
+# Pre-flight checks
+MIN_DOCKER_VERSION=20.10.0
+MIN_DISK_SPACE_MB=1000
+```
+
+**Шаг 3**: Обновить .gitignore:
+
+```bash
+# Environment configuration
+.env
+.env.local
+```
+
+**Шаг 4**: Обновить переменные в glm-launch.sh для использования значений из .env:
+
+```bash
+# Configuration (with .env defaults)
+IMAGE="${IMAGE_NAME:-glm-docker-tools}:${IMAGE_TAG:-latest}"
+DEBUG_MODE=false
+NO_DEL_MODE=false
+
+# Logging (from .env or defaults)
+LOG_LEVEL="${CLAUDE_LOG_LEVEL:-INFO}"
+LOG_FORMAT="${CLAUDE_LOG_FORMAT:-text}"
+LOG_FILE="${CLAUDE_LOG_FILE:-}"
+```
+
+#### ✅ Критерии тестирования
+
+1. **Тест 1: Без .env файла**
+   ```bash
+   # Убедиться что .env не существует
+   rm -f .env
+   ./glm-launch.sh
+   # Ожидаемый результат: Работает с дефолтными значениями
+   ```
+
+2. **Тест 2: С .env файлом**
+   ```bash
+   cp .env.example .env
+   # Изменить параметры в .env
+   echo "CLAUDE_LOG_FORMAT=json" >> .env
+   ./glm-launch.sh
+   # Ожидаемый результат: JSON логирование
+   ```
+
+3. **Тест 3: Проверка переменных**
+   ```bash
+   cp .env.example .env
+   echo "IMAGE_NAME=custom-image" >> .env
+   ./glm-launch.sh --help
+   # Проверить что используется custom-image
+   ```
+
+4. **Тест 4: .gitignore**
+   ```bash
+   git status
+   # .env не должен отображаться в git status
+   ```
+
+#### 📊 Критерии успеха
+- ✅ Загрузка конфигурации из .env
+- ✅ .env.example с полной документацией
+- ✅ .env в .gitignore
+- ✅ Обратная совместимость без .env
+
+---
+
+## 📊 План тестирования
+
+### Интеграционное тестирование
+
+После каждой фазы:
+
+```bash
+# 1. Проверка базовой функциональности
+./glm-launch.sh --help
+
+# 2. Стандартный запуск
+./glm-launch.sh
+
+# 3. Debug режим
+./glm-launch.sh --debug
+
+# 4. No-del режим
+./glm-launch.sh --no-del
+
+# 5. Docker Compose
+docker-compose up
+
+# 6. Тестовый скрипт
+./scripts/test-claude.sh
+
+# 7. Проверка cleanup
+docker ps -a | grep glm-docker
+```
+
+### Regression тестирование
+
+```bash
+# Проверить что все предыдущие функции работают
+1. Запуск в разных режимах
+2. Volume mapping
+3. GLM API конфигурация
+4. Nano editor интеграция
+5. Entrypoint логика
+```
+
+---
+
+## 📝 План коммитов
+
+### Фаза 1
+
+```bash
+git add glm-launch.sh
+git commit -m "feat(P1): Add automatic Docker image build
+
+- Add ensure_image() function
+- Auto-build if image missing
+- Validate Dockerfile exists
+- Refs: docs/EXPERT_CONSENSUS_REVIEW.md"
+
+git commit -m "feat(P2): Add signal handling and cleanup
+
+- Add trap handlers for INT, TERM, EXIT
+- Prevent zombie containers on Ctrl+C
+- Preserve containers in debug/no-del modes
+- Refs: docs/EXPERT_CONSENSUS_REVIEW.md"
+
+git commit -m "refactor(P3): Unify Docker image names
+
+- Standardize to glm-docker-tools:latest
+- Update docker-compose.yml, test scripts
+- Refs: docs/EXPERT_CONSENSUS_REVIEW.md"
+```
+
+### Фаза 2
+
+```bash
+git commit -m "feat(P4): Add cross-platform file size function
+
+- Replace macOS-only stat command
+- Support Linux, macOS, fallback
+- Refs: docs/EXPERT_CONSENSUS_REVIEW.md"
+
+git commit -m "feat(P5): Enhance logging with JSON support
+
+- Add structured JSON logging
+- Optional file logging
+- Execution metrics
+- Refs: docs/EXPERT_CONSENSUS_REVIEW.md"
+```
+
+### Фаза 3
+
+```bash
+git commit -m "feat(P6): Add pre-flight validation checks
+
+- Validate Docker version
+- Check disk space
+- Better error messages
+- Refs: docs/EXPERT_CONSENSUS_REVIEW.md"
+
+git commit -m "feat(P7): Add GitOps configuration with .env
+
+- Support .env configuration files
+- Add .env.example template
+- Backward compatible
+- Refs: docs/EXPERT_CONSENSUS_REVIEW.md"
+```
+
+### Финальный коммит
+
+```bash
+git commit -m "docs: Update documentation for all improvements
+
+- Update README.md with new features
+- Update CONTAINER_LIFECYCLE_MANAGEMENT.md
+- Add cross-references
+- Version bump to 1.3.0"
+```
+
+---
+
+## 📋 Чеклист выполнения
+
+### Фаза 1: Критические исправления
+- [ ] P1: Автоматическая сборка образа
+  - [ ] Реализация
+  - [ ] Тестирование (3 теста)
+  - [ ] Коммит
+- [ ] P2: Обработка сигналов
+  - [ ] Реализация
+  - [ ] Тестирование (4 теста)
+  - [ ] Коммит
+- [ ] P3: Унификация имен
+  - [ ] Реализация
+  - [ ] Тестирование (3 теста)
+  - [ ] Коммит
+- [ ] Интеграционное тестирование Фазы 1
+- [ ] Обновление документации
+
+### Фаза 2: Высокоприоритетные улучшения
+- [ ] P4: Кросс-платформенность
+  - [ ] Реализация
+  - [ ] Тестирование (3 теста)
+  - [ ] Коммит
+- [ ] P5: Улучшенное логирование
+  - [ ] Реализация
+  - [ ] Тестирование (4 теста)
+  - [ ] Коммит
+- [ ] Интеграционное тестирование Фазы 2
+- [ ] Обновление документации
+
+### Фаза 3: Продвинутые функции
+- [ ] P6: Pre-flight проверки
+  - [ ] Реализация
+  - [ ] Тестирование (4 теста)
+  - [ ] Коммит
+- [ ] P7: GitOps конфигурация
+  - [ ] Реализация
+  - [ ] Тестирование (4 теста)
+  - [ ] Коммит
+- [ ] Интеграционное тестирование Фазы 3
+- [ ] Обновление документации
+
+### Финализация
+- [ ] Regression тестирование
+- [ ] Обновление README.md
+- [ ] Обновление CHANGELOG.md
+- [ ] Version bump (1.2.0 → 1.3.0)
+- [ ] Финальный коммит
+
+---
+
+## 🎯 Метрики успеха
+
+| Метрика | До | После | Улучшение |
+|---------|----|----|-----------|
+| Ручная сборка образа | Всегда | Никогда | ✅ 100% |
+| Зомби-контейнеры при Ctrl+C | Часто | Никогда | ✅ 100% |
+| Ошибки несовместимости имен | 5 мест | 0 | ✅ 100% |
+| Проблемы на Linux | Да | Нет | ✅ 100% |
+| Отладка без структуры | Сложно | JSON логи | ✅ 90% |
+| Ошибки конфигурации | Иногда | Проверяются | ✅ 80% |
+| Управление настройками | Хардкод | .env файлы | ✅ 95% |
+
+**Общее улучшение качества**: ~95%
+
+---
+
+## 📞 Поддержка
+
+### Документация
+- **[Expert Consensus Review](./EXPERT_CONSENSUS_REVIEW.md)** - Полный анализ проблем и решений
+- **[Session Handoff](../SESSION_HANDOFF.md)** - Текущий статус проекта
+- **[CLAUDE.md](../CLAUDE.md)** - Инструкции для Claude Code
+
+### Контакты
+- **Issues**: [GitHub Issues](https://github.com/your-repo/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/your-repo/discussions)
+
+---
+
+**План создан**: 2025-12-25
+**Статус**: Готов к реализации
+**Следующий шаг**: Начать Фазу 1 → P1 (Автоматическая сборка образа)
