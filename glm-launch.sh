@@ -104,6 +104,66 @@ check_dependencies() {
     fi
 }
 
+# Ensure Docker image exists (build if necessary)
+ensure_image() {
+    log_info "🔍 Проверка наличия Docker-образа: $IMAGE"
+
+    # DEBUG: Показать timestamp для отслеживания
+    log_info "DEBUG: Timestamp проверки: $(date '+%Y-%m-%d %H:%M:%S.%3N')"
+
+    # DEBUG: Показать все образы glm-docker-tools
+    log_info "DEBUG: Список всех образов glm-docker-tools:"
+    docker images --filter "reference=glm-docker-tools*" --format "  {{.Repository}}:{{.Tag}} | ID: {{.ID}} | Created: {{.CreatedAt}}" || log_warning "  (нет образов)"
+
+    # Проверка 1: Используем docker images -q для надежности
+    local image_id=$(docker images -q "$IMAGE" 2>/dev/null)
+    log_info "DEBUG: docker images -q результат: '${image_id:-EMPTY}'"
+
+    # Проверка 2: docker image inspect для детальной информации
+    local inspect_status=0
+    docker image inspect "$IMAGE" &> /dev/null || inspect_status=$?
+    log_info "DEBUG: docker image inspect exit code: $inspect_status"
+
+    if [[ -z "$image_id" ]]; then
+        log_info "🏗️  Образ $IMAGE не найден (image_id пуст). Начинаю сборку..."
+        log_info "DEBUG: Причина: docker images -q не вернул ID"
+
+        local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+        if [[ ! -f "$script_dir/Dockerfile" ]]; then
+            log_error "❌ Dockerfile не найден: $script_dir/Dockerfile"
+            exit 1
+        fi
+
+        log_info "📦 Запуск docker build -t $IMAGE $script_dir"
+        local build_start=$(date +%s)
+
+        if ! docker build -t "$IMAGE" "$script_dir"; then
+            log_error "❌ Ошибка сборки образа"
+            exit 1
+        fi
+
+        local build_end=$(date +%s)
+        local build_duration=$((build_end - build_start))
+
+        log_success "✅ Образ успешно собран: $IMAGE (за ${build_duration}с)"
+
+        # Проверка после сборки
+        local new_image_id=$(docker images -q "$IMAGE" 2>/dev/null)
+        if [[ -n "$new_image_id" ]]; then
+            log_success "DEBUG: Сборка подтверждена, новый ID: $new_image_id"
+        else
+            log_error "❌ КРИТИЧЕСКАЯ ОШИБКА: Образ собран, но недоступен!"
+            log_error "DEBUG: docker images -q всё ещё возвращает пустой результат"
+            exit 1
+        fi
+    else
+        log_success "✅ Образ найден: $IMAGE (ID: ${image_id:0:12})"
+        log_info "DEBUG: Проверка успешна, выход из ensure_image() без сборки"
+        return 0
+    fi
+}
+
 # Создание необходимых директорий
 prepare_directories() {
     # Создание директории Claude
@@ -347,6 +407,9 @@ main() {
 
     # Проверка зависимостей
     check_dependencies
+
+    # Ensure image exists
+    ensure_image
 
     # Подготовка директорий
     prepare_directories
