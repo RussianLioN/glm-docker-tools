@@ -98,17 +98,40 @@ Rollback: [Reversal steps]
 □ Rollback plan exists
 □ Success measurable (testable outcomes)
 □ Constraints respected (permissions, limits)
+□ UAT completed and user approved (MANDATORY for all features)
 ```
+
+### User Acceptance Testing (UAT) - MANDATORY
+
+**CRITICAL REQUIREMENT:** All features MUST include User Acceptance Testing.
+
+**See:** [Feature Implementation with UAT Methodology](./docs/FEATURE_IMPLEMENTATION_WITH_UAT.md)
+
+**Key Principles:**
+- **Test Plan First:** UAT plan created BEFORE coding
+- **ONE-AT-A-TIME:** User executes steps sequentially
+- **User Validation:** AI never assumes - user confirms
+- **Complete Test Pyramid:** Unit → Integration → E2E → UAT
+
+**Definition of Done includes:**
+- [ ] UAT test plan created and approved
+- [ ] All UAT steps executed by user
+- [ ] User provided output for each step
+- [ ] AI validated each step
+- [ ] User explicitly approved: "UAT PASSED"
+
+**Lesson from P1:** `--dry-run` validates script logic but NEVER launches containers or tests real functionality. Without UAT, features may work in isolation but fail in production.
 
 ## 📚 REQUIRED READING
 
 ### Essential Documentation (Must Read)
-1. **[Claude Code settings](https://code.claude.com/docs/en/settings.md)** - Complete configuration reference
-2. **[Identity and Access Management](https://code.claude.com/docs/en/iam.md)** - Authentication, authorization, and access controls
-3. **[Connect Claude Code to tools via MCP](https://code.claude.com/docs/en/mcp.md)** - Model Context Protocol integration
-4. **[Plugins](https://code.claude.com/docs/en/plugins.md)** - Plugin system architecture and usage
-5. **[GLM Coding Plan Configuration](./docs/Claude-Code-GLM.md)** - Z.AI API integration and authentication setup (IMPORTANT for current project)
-6. **[Docker Authentication Research](./DOCKER_AUTHENTICATION_RESEARCH.md)** - Comprehensive analysis of Claude Code authentication in Docker containers (CRITICAL for container deployment)
+1. **[Feature Implementation with UAT](./docs/FEATURE_IMPLEMENTATION_WITH_UAT.md)** - **MANDATORY** methodology for all features with User Acceptance Testing (CRITICAL - read FIRST!)
+2. **[Claude Code settings](https://code.claude.com/docs/en/settings.md)** - Complete configuration reference
+3. **[Identity and Access Management](https://code.claude.com/docs/en/iam.md)** - Authentication, authorization, and access controls
+4. **[Connect Claude Code to tools via MCP](https://code.claude.com/docs/en/mcp.md)** - Model Context Protocol integration
+5. **[Plugins](https://code.claude.com/docs/en/plugins.md)** - Plugin system architecture and usage
+6. **[GLM Coding Plan Configuration](./docs/Claude-Code-GLM.md)** - Z.AI API integration and authentication setup (IMPORTANT for current project)
+7. **[Docker Authentication Research](./DOCKER_AUTHENTICATION_RESEARCH.md)** - Comprehensive analysis of Claude Code authentication in Docker containers (CRITICAL for container deployment)
 
 ### Critical Settings Sections (from local [Claude-Code-settings.md](./docs/Claude-Code-settings.md))
 - **Settings files hierarchy** - Understanding precedence (Managed > CLI > Local > Shared > User)
@@ -253,6 +276,8 @@ Since this is a documentation repository, common tasks include:
 - **📝 [Configuration Template](./.claude/settings.template.json)** - Safe settings template
 
 ### Advanced Topics
+- **🧪 [Feature Implementation with UAT](./docs/FEATURE_IMPLEMENTATION_WITH_UAT.md)** - **NEW** **MANDATORY** - Complete UAT methodology with templates
+- **📋 [UAT Plans & Templates](./docs/uat/)** - **NEW** - UAT test plans and execution templates
 - **🏆 [Expert Consensus Review](./docs/EXPERT_CONSENSUS_REVIEW.md)** - **NEW** 11-expert panel review with 7 critical improvements
 - **📝 [Implementation Plan](./docs/IMPLEMENTATION_PLAN.md)** - **NEW** Detailed roadmap for all improvements
 - **🧪 [Experiments Plan](./PRACTICAL_EXPERIMENTS_PLAN.md)** - Validation procedures and testing
