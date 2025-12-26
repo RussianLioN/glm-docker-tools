@@ -2,7 +2,7 @@
 
 > 📋 **Methodology Document** | [Home](../README.md) > [CLAUDE.md](../CLAUDE.md) > **UAT Methodology**
 
-**Version:** 1.0
+**Version:** 1.1
 **Status:** Active
 **Last Updated:** 2025-12-26
 
@@ -204,8 +204,11 @@ As a [user type], I want [goal] so that [benefit].
 2. User executes in separate terminal
 3. User copies FULL output
 4. User sends result to AI
-5. AI validates before next step
-6. NEVER proceed without user confirmation
+5. **AI performs automatic validation** from output
+6. AI provides next step after validation
+7. NEVER proceed without user confirmation
+
+**IMPORTANT:** AI automatically validates all success criteria from the user's output. User only needs to copy/paste the full terminal output - no manual checklists or confirmations required (except in rare cases where there's no output).
 
 ### UAT Step Template
 
@@ -239,16 +242,10 @@ As a [user type], I want [goal] so that [benefit].
 [ERROR] would indicate a problem  ← Should NOT see this
 ```
 
-## Success Criteria
-- [ ] Criterion 1: [Specific check]
-- [ ] Criterion 2: [Specific check]
-- [ ] Criterion 3: [Specific check]
-
-## Validation Checklist
-- [ ] Command executed without errors
-- [ ] Output matches expected pattern
-- [ ] All success criteria met
-- [ ] No unexpected warnings or errors
+## Success Criteria (AI will validate automatically)
+- Criterion 1: [Specific check]
+- Criterion 2: [Specific check]
+- Criterion 3: [Specific check]
 
 ## Troubleshooting
 **If you see [Error Pattern]:**
@@ -259,17 +256,15 @@ As a [user type], I want [goal] so that [benefit].
 After completing this step:
 1. Copy the ENTIRE terminal output
 2. Paste it in your response
-3. Confirm all success criteria are met
-4. I will validate and provide Step [N+1]
+3. AI will validate and provide Step [N+1]
 
 ---
 
 ⏸️ **WAITING FOR USER RESPONSE**
 
-Please execute the command and send me:
-- [ ] Full terminal output (copy/paste)
-- [ ] Confirmation of success criteria
-- [ ] Any questions or issues encountered
+Please execute the command and send the full terminal output (copy/paste).
+
+Optional: Mention any questions or issues if encountered.
 ```
 
 ### Example: Complete UAT Step
@@ -325,20 +320,13 @@ docker rmi glm-docker-tools:latest 2>/dev/null; ./glm-launch.sh
 [Claude Code launches - you should see Claude prompt]
 ```
 
-## Success Criteria
-- [ ] Message "🏗️ Образ не найден. Начинаю сборку..." appears
-- [ ] Docker build completes without errors
-- [ ] Message "✅ Образ успешно собран" with build time appears
-- [ ] New image ID is displayed and confirmed
-- [ ] Claude Code launches successfully
-- [ ] No error messages in output
-
-## Validation Checklist
-- [ ] Build duration is shown (e.g., "за 45с")
-- [ ] Build used cached layers OR pulled fresh layers
-- [ ] Image ID is a 12-character hex string
-- [ ] Claude Code interactive prompt appears
-- [ ] Can type in Claude Code prompt
+## Success Criteria (AI will validate automatically)
+- Message "🏗️ Образ не найден. Начинаю сборку..." appears
+- Docker build completes without errors
+- Message "✅ Образ успешно собран" with build time appears
+- New image ID is displayed and confirmed
+- Claude Code launches successfully
+- No error messages in output
 
 ## Troubleshooting
 
@@ -360,19 +348,15 @@ docker rmi glm-docker-tools:latest 2>/dev/null; ./glm-launch.sh
 After completing this step:
 1. Copy the ENTIRE terminal output (from "Claude Code Launcher" to Claude prompt)
 2. Paste it in your response
-3. Confirm all 6 success criteria are met
-4. Answer: Did Claude Code launch successfully? (Yes/No)
-5. I will validate and provide UAT Step 2
+3. AI will validate and provide UAT Step 2
 
 ---
 
 ⏸️ **WAITING FOR USER RESPONSE**
 
-Please execute the command and send me:
-- [ ] Full terminal output (copy/paste)
-- [ ] Confirmation: All success criteria met? (Yes/No)
-- [ ] Confirmation: Claude Code launched? (Yes/No)
-- [ ] Any questions or issues encountered
+Please execute the command and send the full terminal output (copy/paste).
+
+Optional: Mention any questions or issues if encountered.
 ```
 
 ---
@@ -551,15 +535,42 @@ Check if it works
 ```markdown
 ⏸️ WAITING FOR USER RESPONSE
 
-Please send:
-- [ ] Full output
-- [ ] Confirmation of success criteria
+Please execute the command and send the full terminal output (copy/paste).
 ```
 
 **Bad:**
 ```markdown
 [Proceeds to next step without waiting]
 ```
+
+### 5. AI Automatic Validation (Simplified Format)
+
+**Improvement from P1 UAT Feedback:**
+
+User feedback identified that manual validation checklists were redundant since users copy/paste full output. The methodology was simplified:
+
+**Before (Excessive):**
+```markdown
+Please send me:
+- [ ] Full terminal output (copy/paste)
+- [ ] Confirmation: All success criteria met? (Yes/No)
+- [ ] Confirmation: Claude Code launched? (Yes/No)
+- [ ] Any questions or issues encountered
+```
+
+**After (Simplified):**
+```markdown
+Please execute the command and send the full terminal output (copy/paste).
+
+Optional: Mention any questions or issues if encountered.
+```
+
+**Rationale:**
+- User provides full output → AI validates all criteria automatically
+- No manual checklists needed (AI can see everything in output)
+- Exception: Manual notification only if no output (rare)
+- Faster iteration, less back-and-forth
+- Maintains same quality assurance level
 
 ---
 
@@ -697,6 +708,7 @@ All templates are available in `docs/uat/templates/`:
 
 | Version | Date | Changes | Author |
 |---------|------|---------|--------|
+| 1.1 | 2025-12-26 | Simplified UAT format: removed manual checklists, AI auto-validates from output | Claude Sonnet 4.5 |
 | 1.0 | 2025-12-26 | Initial methodology document | Claude Sonnet 4.5 |
 
 ---

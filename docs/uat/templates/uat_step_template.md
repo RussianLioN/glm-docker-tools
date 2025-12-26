@@ -27,16 +27,10 @@
 [ERROR] would indicate a problem  ← Should NOT see this
 ```
 
-## Success Criteria
-- [ ] Criterion 1: [Specific check]
-- [ ] Criterion 2: [Specific check]
-- [ ] Criterion 3: [Specific check]
-
-## Validation Checklist
-- [ ] Command executed without errors
-- [ ] Output matches expected pattern
-- [ ] All success criteria met
-- [ ] No unexpected warnings or errors
+## Success Criteria (AI will validate automatically)
+- Criterion 1: [Specific check]
+- Criterion 2: [Specific check]
+- Criterion 3: [Specific check]
 
 ## Troubleshooting
 
@@ -52,14 +46,12 @@
 After completing this step:
 1. Copy the ENTIRE terminal output
 2. Paste it in your response
-3. Confirm all success criteria are met
-4. I will validate and provide Step [N+1]
+3. AI will validate and provide Step [N+1]
 
 ---
 
 ⏸️ **WAITING FOR USER RESPONSE**
 
-Please execute the command and send me:
-- [ ] Full terminal output (copy/paste)
-- [ ] Confirmation of success criteria
-- [ ] Any questions or issues encountered
+Please execute the command and send the full terminal output (copy/paste).
+
+Optional: Mention any questions or issues if encountered.
