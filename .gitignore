@@ -297,4 +297,4 @@ weights/
 # Claude Code Working Directories
 .claude-workspace/
 .claude-temp/
-claude-work/
+claude-work/.uat-logs/
