@@ -4,6 +4,11 @@
 
 set -euo pipefail
 
+# Container tracking for cleanup
+CONTAINER_NAME=""
+CONTAINER_CREATED=false
+CLEANUP_IN_PROGRESS=false
+
 # Цветной вывод
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -221,13 +226,13 @@ run_claude() {
 
     # Генерация уникального имени контейнера
     local timestamp=$(date +%s)
-    local container_name="glm-docker-${timestamp}"
+    CONTAINER_NAME="glm-docker-${timestamp}"
 
     # Добавляем префикс в зависимости от режима
     if [[ "$DEBUG_MODE" == "true" ]]; then
-        container_name="glm-docker-debug-${timestamp}"
+        CONTAINER_NAME="glm-docker-debug-${timestamp}"
     elif [[ "$NO_DEL_MODE" == "true" ]]; then
-        container_name="glm-docker-nodebug-${timestamp}"
+        CONTAINER_NAME="glm-docker-nodebug-${timestamp}"
     fi
 
     
@@ -248,7 +253,7 @@ run_claude() {
     fi
 
     docker_cmd+=(
-        --name "$container_name"
+        --name "$CONTAINER_NAME"
         -v "$CLAUDE_HOME:/root/.claude"
         -v "$WORKSPACE:/workspace"
         -w /workspace
@@ -269,7 +274,7 @@ run_claude() {
     fi
 
     log_info "Запуск Claude Code..."
-    log_info "CONTAINER_NAME: $container_name"
+    log_info "CONTAINER_NAME: $CONTAINER_NAME"
     log_info "CLAUDE_HOME: $CLAUDE_HOME"
     log_info "WORKSPACE: $WORKSPACE"
     log_info "IMAGE: $IMAGE"
@@ -307,6 +312,9 @@ run_claude() {
     # Универсальный запуск контейнера для всех режимов
     local docker_exit_code=0
 
+    # Mark container as created for cleanup
+    CONTAINER_CREATED=true
+
     # Запускаем контейнер с универсальной логикой
     if [[ ${#claude_args[@]} -gt 0 ]]; then
         "${docker_cmd[@]}" "$IMAGE" "${claude_args[@]}" || docker_exit_code=$?
@@ -320,21 +328,53 @@ run_claude() {
         log_success "✅ Claude Code завершен"
 
         if [[ "$NO_DEL_MODE" == "true" ]]; then
-            log_warning "⚠️  Контейнер '$container_name' сохранен (ОСТАНОВЛЕН)"
+            log_warning "⚠️  Контейнер '$CONTAINER_NAME' сохранен (ОСТАНОВЛЕН)"
             echo
             log_info "📋 Команды для работы с контейнером:"
-            log_info "  docker start -ai $container_name                # Запустить Claude снова"
-            log_info "  ./scripts/shell-access.sh $container_name        # Удобный shell доступ"
-            log_info "  docker rm -f $container_name                    # Удалить контейнер"
+            log_info "  docker start -ai $CONTAINER_NAME                # Запустить Claude снова"
+            log_info "  ./scripts/shell-access.sh $CONTAINER_NAME        # Удобный shell доступ"
+            log_info "  docker rm -f $CONTAINER_NAME                    # Удалить контейнер"
         else
-            log_warning "⚠️  Контейнер '$container_name' будет запущен после выхода из shell"
+            log_warning "⚠️  Контейнер '$CONTAINER_NAME' будет запущен после выхода из shell"
             echo
             log_info "📋 Команды для работы с контейнером:"
-            log_info "  docker stop $container_name                     # Остановить контейнер"
-            log_info "  docker start -ai $container_name                # Запустить Claude снова"
-            log_info "  docker rm -f $container_name                    # Удалить контейнер"
+            log_info "  docker stop $CONTAINER_NAME                     # Остановить контейнер"
+            log_info "  docker start -ai $CONTAINER_NAME                # Запустить Claude снова"
+            log_info "  docker rm -f $CONTAINER_NAME                    # Удалить контейнер"
         fi
         echo
+    fi
+}
+
+# Cleanup function for signal handling
+cleanup() {
+    # Prevent recursive cleanup
+    if [[ "$CLEANUP_IN_PROGRESS" == "true" ]]; then
+        return 0
+    fi
+    CLEANUP_IN_PROGRESS=true
+
+    if [[ -n "$CONTAINER_NAME" && "$CONTAINER_CREATED" == "true" ]]; then
+        log_info "🧹 Cleanup: обработка контейнера $CONTAINER_NAME..."
+
+        # Check if container exists
+        if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+            # Stop container if running
+            if docker ps --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
+                log_info "Остановка контейнера..."
+                docker stop "$CONTAINER_NAME" &>/dev/null || true
+            fi
+
+            # Remove only in auto-del mode
+            if [[ "$DEBUG_MODE" == "false" && "$NO_DEL_MODE" == "false" ]]; then
+                log_info "Удаление контейнера..."
+                docker rm -f "$CONTAINER_NAME" &>/dev/null || true
+                log_success "✅ Контейнер очищен"
+            else
+                log_warning "⚠️  Контейнер сохранен: $CONTAINER_NAME"
+                log_info "Для удаления: docker rm -f $CONTAINER_NAME"
+            fi
+        fi
     fi
 }
 
@@ -404,6 +444,9 @@ fi
 # Основная логика
 main() {
     log_info "Claude Code Launcher v1.1"
+
+    # Set up signal handlers for cleanup
+    trap cleanup SIGINT SIGTERM SIGQUIT ERR EXIT
 
     # Проверка зависимостей
     check_dependencies

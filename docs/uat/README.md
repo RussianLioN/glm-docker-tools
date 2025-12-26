@@ -36,13 +36,13 @@ uat/
 
 | Feature | Plan | Status | UAT Status |
 |---------|------|--------|------------|
-| P1: Automatic Docker Image Build | [P1 UAT Plan](./P1_automatic_build_uat.md) | ⏳ Pending | ❌ Not Started |
+| P1: Automatic Docker Image Build | ~~[P1 UAT Plan](./P1_automatic_build_uat.md)~~ | ✅ Complete | ✅ UAT PASSED (2025-12-26) |
 
 ### Phase 2 (IMPORTANT)
 
 | Feature | Plan | Status | UAT Status |
 |---------|------|--------|------------|
-| P2: Signal Handling | [P2 UAT Plan](./P2_signal_handling_uat.md) | ⏳ Pending | ❌ Not Started |
+| P2: Signal Handling | [P2 UAT Plan](./P2_signal_handling_uat.md) | ✅ Complete | ✅ UAT PASSED (2025-12-26) |
 
 ### Phase 3 (MEDIUM)
 
