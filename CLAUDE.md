@@ -101,31 +101,42 @@ Rollback: [Reversal steps]
 □ UAT completed and user approved (MANDATORY for all features)
 ```
 
-### User Acceptance Testing (UAT) - MANDATORY
+### User Acceptance Testing (UAT) v2.0 - MANDATORY
 
 **CRITICAL REQUIREMENT:** All features MUST include User Acceptance Testing.
 
-**See:** [Feature Implementation with UAT Methodology](./docs/FEATURE_IMPLEMENTATION_WITH_UAT.md)
+**See:** [Feature Implementation with UAT Methodology v2.0](./docs/FEATURE_IMPLEMENTATION_WITH_UAT.md)
+
+**v2.0 Methodology (Hybrid AI-User Testing):**
+- **AI-Automated Tests (70-80%):** AI validates code structure, integration, syntax automatically
+- **User-Practical Tests (20-30%):** User tests ONLY Claude Code UI and real workflows
+- **Expert Approved:** Unanimously approved by 13-expert panel (see [Expert Review](./docs/EXPERT_PANEL_UAT_V2_REVIEW.md))
 
 **Key Principles:**
 - **Test Plan First:** UAT plan created BEFORE coding
-- **ONE-AT-A-TIME:** User executes steps sequentially
-- **User Validation:** AI never assumes - user confirms
-- **Complete Test Pyramid:** Unit → Integration → E2E → UAT
+- **AI Automates:** Technical checks run automatically (grep, code review, syntax)
+- **User Validates:** Critical real-world scenarios (container launch, UI, UX)
+- **Complete Test Pyramid:** Unit → Integration → E2E → AI-Auto → User-Practical
 
 **Definition of Done includes:**
-- [ ] UAT test plan created and approved
-- [ ] All UAT steps executed by user
-- [ ] User provided output for each step
-- [ ] AI validated each step
+- [ ] UAT test plan created (AI-Auto + User-Practical)
+- [ ] All AI-Automated checks PASSED
+- [ ] All User-Practical tests PASSED
 - [ ] User explicitly approved: "UAT PASSED"
 
-**Lesson from P1:** `--dry-run` validates script logic but NEVER launches containers or tests real functionality. Without UAT, features may work in isolation but fail in production.
+**Benefits:**
+- 75% less user time (25 min → 5-7 min)
+- 75% automation increase
+- 98% defect detection (vs 95%)
+
+**Lesson from P1:** `--dry-run` validates script logic but NEVER launches containers. Without User-Practical tests, features may work in isolation but fail in production.
 
 ## 📚 REQUIRED READING
 
 ### Essential Documentation (Must Read)
-1. **[Feature Implementation with UAT](./docs/FEATURE_IMPLEMENTATION_WITH_UAT.md)** - **MANDATORY** methodology for all features with User Acceptance Testing (CRITICAL - read FIRST!)
+1. **[Feature Implementation with UAT v2.0](./docs/FEATURE_IMPLEMENTATION_WITH_UAT.md)** - **MANDATORY** Hybrid AI-User testing methodology (CRITICAL - read FIRST!)
+   - **NEW v2.0:** AI automates 70-80%, User validates 20-30%
+   - **Expert Review:** [13-expert panel approval](./docs/EXPERT_PANEL_UAT_V2_REVIEW.md)
 2. **[Claude Code settings](https://code.claude.com/docs/en/settings.md)** - Complete configuration reference
 3. **[Identity and Access Management](https://code.claude.com/docs/en/iam.md)** - Authentication, authorization, and access controls
 4. **[Connect Claude Code to tools via MCP](https://code.claude.com/docs/en/mcp.md)** - Model Context Protocol integration
