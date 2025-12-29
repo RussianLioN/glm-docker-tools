@@ -26,7 +26,7 @@ log_warning() {
 # Конфигурация
 CLAUDE_HOME="${CLAUDE_HOME:-$HOME/.claude}"
 WORKSPACE="${WORKSPACE:-$(pwd)}"
-IMAGE="${CLAUDE_IMAGE:-claude-code-docker:latest}"
+IMAGE="${CLAUDE_IMAGE:-glm-docker-tools:latest}"
 CONTAINER_PREFIX="claude-instance"
 
 # Показать справку

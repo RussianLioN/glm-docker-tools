@@ -5,7 +5,7 @@ version: '3.8'
 
 services:
   claude:
-    image: ${CLAUDE_IMAGE:-anthropic/claude-code:latest}
+    image: ${CLAUDE_IMAGE:-glm-docker-tools:latest}
     container_name: claude-code
     volumes:
       # Главная директория Claude для унифицированной истории чатов

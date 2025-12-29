@@ -21,7 +21,7 @@ echo "=== Тест Docker volume mapping ==="
 docker run --rm \
   -v "$CLAUDE_STATE_DIR":/root/.claude \
   -e CLAUDE_CONFIG_DIR=/root/.claude \
-  claude-code-tools:latest \
+  glm-docker-tools:latest \
   ls -la /root/.claude/history.jsonl 2>/dev/null || echo "Тест завершен"
 
 echo "=== Конец теста ==="

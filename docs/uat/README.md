@@ -48,7 +48,7 @@ uat/
 
 | Feature | Plan | Status | UAT Status |
 |---------|------|--------|------------|
-| P3: Image Name Unification | [P3 UAT Plan](./P3_image_unification_uat.md) | ⏳ Pending | ❌ Not Started |
+| P3: Image Name Unification | [P3 UAT Plan](./P3_image_name_unification_uat.md) | ✅ Complete | ✅ UAT PASSED (2025-12-29) |
 
 ---
 

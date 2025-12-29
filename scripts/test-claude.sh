@@ -18,7 +18,7 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
 
 # Конфигурация
 CLAUDE_HOME="${CLAUDE_HOME:-$HOME/.claude}"
-IMAGE="${CLAUDE_IMAGE:-anthropic/claude-code:latest}"
+IMAGE="${CLAUDE_IMAGE:-glm-docker-tools:latest}"
 
 test_count=0
 passed_count=0

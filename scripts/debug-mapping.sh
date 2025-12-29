@@ -46,7 +46,7 @@ log_info "3. Testing Docker volume mapping:"
 docker run --rm \
     -v "$CLAUDE_HOME:/root/.claude" \
     -e CLAUDE_CONFIG_DIR=/root/.claude \
-    claude-code-docker:latest \
+    glm-docker-tools:latest \
     bash -c '
         echo "=== Inside Container ==="
         echo "Claude config dir: $CLAUDE_CONFIG_DIR"

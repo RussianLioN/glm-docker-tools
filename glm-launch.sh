@@ -51,7 +51,7 @@ Claude Code Launcher - Чистое решение для запуска Claude 
 Опции:
     -h, --help          Показать эту справку
     -w, --workspace DIR Указать рабочую директорию (по умолчанию: текущая)
-    -i, --image IMAGE  Указать Docker образ (по умолчанию: claude-code-tools:latest)
+    -i, --image IMAGE  Указать Docker образ (по умолчанию: glm-docker-tools:latest)
     -t, --test         Запустить тест конфигурации
     -b, --backup       Создать backup ~/.claude
     --dry-run          Показать команду запуска без выполнения
@@ -61,7 +61,7 @@ Claude Code Launcher - Чистое решение для запуска Claude 
 Переменные окружения:
     CLAUDE_HOME        Директория Claude (по умолчанию: ~/.claude)
     WORKSPACE          Рабочая директория (по умолчанию: текущая)
-    CLAUDE_IMAGE       Docker образ (по умолчанию: claude-code-tools:latest)
+    CLAUDE_IMAGE       Docker образ (по умолчанию: glm-docker-tools:latest)
 
 Примеры:
     $0                          # Запуск Claude с автоудалением контейнера
