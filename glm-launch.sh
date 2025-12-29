@@ -51,6 +51,23 @@ get_file_mtime() {
     esac
 }
 
+# Structured logging and metrics functions
+log_json() {
+    local level="$1" message="$2"
+    local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    local log_file="${CLAUDE_HOME}/glm-launch.log"
+
+    echo "{\"timestamp\":\"$timestamp\",\"level\":\"$level\",\"message\":\"$message\"}" >> "$log_file" 2>/dev/null || true
+}
+
+log_metric() {
+    local metric="$1" value="$2"
+    local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    local metrics_file="${CLAUDE_HOME}/metrics.jsonl"
+
+    echo "{\"timestamp\":\"$timestamp\",\"metric\":\"$metric\",\"value\":\"$value\"}" >> "$metrics_file" 2>/dev/null || true
+}
+
 # Конфигурация с умолчаниями
 CLAUDE_HOME="${CLAUDE_HOME:-$HOME/.claude}"
 WORKSPACE="${WORKSPACE:-$(pwd)}"
@@ -334,12 +351,27 @@ run_claude() {
     # Mark container as created for cleanup
     CONTAINER_CREATED=true
 
+    # Log metrics before launch
+    log_metric "container_start" "$CONTAINER_NAME"
+    log_metric "launch_mode" "$launch_mode"
+    log_metric "docker_image" "$IMAGE"
+    log_json "INFO" "Starting container: $CONTAINER_NAME (mode: $launch_mode, image: $IMAGE)"
+
+    # Track duration
+    local start_time=$SECONDS
+
     # Запускаем контейнер с универсальной логикой
     if [[ ${#claude_args[@]} -gt 0 ]]; then
         "${docker_cmd[@]}" "$IMAGE" "${claude_args[@]}" || docker_exit_code=$?
     else
         "${docker_cmd[@]}" "$IMAGE" || docker_exit_code=$?
     fi
+
+    # Log metrics after exit
+    local duration=$((SECONDS - start_time))
+    log_metric "exit_code" "$docker_exit_code"
+    log_metric "duration_seconds" "$duration"
+    log_json "INFO" "Container exited: $CONTAINER_NAME (exit_code: $docker_exit_code, duration: ${duration}s)"
 
     # В режимах без автоудаления показываем информацию
     if [[ "$DEBUG_MODE" == "true" || "$NO_DEL_MODE" == "true" ]]; then
