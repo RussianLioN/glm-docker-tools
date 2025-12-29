@@ -32,6 +32,25 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1" >&2
 }
 
+# Cross-platform helper functions
+get_file_size() {
+    local file="$1"
+    case "$OSTYPE" in
+        darwin*) stat -f%z "$file" 2>/dev/null || echo "0" ;;
+        linux*)  stat -c%s "$file" 2>/dev/null || echo "0" ;;
+        *)       find "$file" -printf "%s" 2>/dev/null || echo "0" ;;
+    esac
+}
+
+get_file_mtime() {
+    local file="$1"
+    case "$OSTYPE" in
+        darwin*) stat -f%Sm "$file" 2>/dev/null || echo "N/A" ;;
+        linux*)  stat -c%y "$file" 2>/dev/null | cut -d'.' -f1 || echo "N/A" ;;
+        *)       ls -l "$file" 2>/dev/null | awk '{print $6, $7, $8}' || echo "N/A" ;;
+    esac
+}
+
 # Конфигурация с умолчаниями
 CLAUDE_HOME="${CLAUDE_HOME:-$HOME/.claude}"
 WORKSPACE="${WORKSPACE:-$(pwd)}"
@@ -199,9 +218,9 @@ test_configuration() {
 
     # Тест доступа к истории
     if [[ -f "$CLAUDE_HOME/history.jsonl" ]]; then
-        local size=$(stat -f%z "$CLAUDE_HOME/history.jsonl" 2>/dev/null || echo "0")
+        local size=$(get_file_size "$CLAUDE_HOME/history.jsonl")
         if [[ $size -gt 0 ]]; then
-            log_success "История чатов найдена ($(stat -f%z "$CLAUDE_HOME/history.jsonl") байт)"
+            log_success "История чатов найдена ($(get_file_size "$CLAUDE_HOME/history.jsonl") байт)"
         fi
     else
         log_warning "История чатов не найдена, будет создана новая"

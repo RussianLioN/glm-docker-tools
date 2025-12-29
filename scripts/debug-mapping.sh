@@ -15,6 +15,25 @@ log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 log_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
 
+# Cross-platform helper functions
+get_file_size() {
+    local file="$1"
+    case "$OSTYPE" in
+        darwin*) stat -f%z "$file" 2>/dev/null || echo "0" ;;
+        linux*)  stat -c%s "$file" 2>/dev/null || echo "0" ;;
+        *)       find "$file" -printf "%s" 2>/dev/null || echo "0" ;;
+    esac
+}
+
+get_file_mtime() {
+    local file="$1"
+    case "$OSTYPE" in
+        darwin*) stat -f%Sm "$file" 2>/dev/null || echo "N/A" ;;
+        linux*)  stat -c%y "$file" 2>/dev/null | cut -d'.' -f1 || echo "N/A" ;;
+        *)       ls -l "$file" 2>/dev/null | awk '{print $6, $7, $8}' || echo "N/A" ;;
+    esac
+}
+
 CLAUDE_HOME="/Users/s060874gmail.com/.claude"
 
 echo "=== DEBUGGING CLAUDE DIRECTORY MAPPING ==="
@@ -27,15 +46,15 @@ echo
 log_info "2. Checking for configuration files:"
 if [[ -f "$CLAUDE_HOME/claude.json" ]]; then
     log_success "Found: $CLAUDE_HOME/claude.json"
-    echo "Size: $(stat -f%z "$CLAUDE_HOME/claude.json") bytes"
-    echo "Modified: $(stat -f%Sm "$CLAUDE_HOME/claude.json")"
+    echo "Size: $(get_file_size "$CLAUDE_HOME/claude.json") bytes"
+    echo "Modified: $(get_file_mtime "$CLAUDE_HOME/claude.json")"
 else
     log_error "Not found: $CLAUDE_HOME/claude.json"
 fi
 
 if [[ -f "$CLAUDE_HOME/history.jsonl" ]]; then
     log_success "Found: $CLAUDE_HOME/history.jsonl"
-    echo "Size: $(stat -f%z "$CLAUDE_HOME/history.jsonl") bytes"
+    echo "Size: $(get_file_size "$CLAUDE_HOME/history.jsonl") bytes"
     echo "Lines: $(wc -l < "$CLAUDE_HOME/history.jsonl")"
 else
     log_error "Not found: $CLAUDE_HOME/history.jsonl"

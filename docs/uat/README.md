@@ -49,6 +49,7 @@ uat/
 | Feature | Plan | Status | UAT Status |
 |---------|------|--------|------------|
 | P3: Image Name Unification | [P3 UAT Plan](./P3_image_name_unification_uat.md) | ✅ Complete | ✅ UAT PASSED (2025-12-29) |
+| P4: Cross-platform Compatibility | [P4 UAT Plan](./P4_cross_platform_uat.md) | ✅ Complete | ✅ UAT PASSED (2025-12-29) |
 
 ---
 
