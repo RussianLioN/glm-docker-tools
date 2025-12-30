@@ -4,6 +4,12 @@
 
 set -euo pipefail
 
+# Load environment configuration from .env file (P7: GitOps Configuration)
+if [[ -f ".env" ]]; then
+    # shellcheck disable=SC2046
+    export $(grep -v '^#' .env | grep -v '^$' | xargs)
+fi
+
 # Container tracking for cleanup
 CONTAINER_NAME=""
 CONTAINER_CREATED=false
