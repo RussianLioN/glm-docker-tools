@@ -125,23 +125,75 @@ create_backup() {
     fi
 }
 
-# Проверка зависимостей
+# Version comparison function
+# Returns 0 if $1 >= $2, returns 1 otherwise
+version_gte() {
+    local version="$1"
+    local required="$2"
+
+    # Simple version comparison (major.minor.patch)
+    local v1=(${version//./ })
+    local v2=(${required//./ })
+
+    for i in 0 1 2; do
+        local num1=${v1[$i]:-0}
+        local num2=${v2[$i]:-0}
+
+        if [[ $num1 -gt $num2 ]]; then
+            return 0
+        elif [[ $num1 -lt $num2 ]]; then
+            return 1
+        fi
+    done
+
+    return 0  # Equal versions
+}
+
+# Enhanced dependency check with validation (P6: Pre-flight Checks)
 check_dependencies() {
-    # Проверка Docker
+    log_info "🔍 Проверка зависимостей..."
+
+    # Check Docker installation
     if ! command -v docker &> /dev/null; then
-        log_error "Docker не установлен или не запущен"
+        log_error "❌ Docker не установлен. Установите Docker Desktop: https://docker.com"
         exit 1
     fi
 
-    # Проверка что Docker запущен
+    # Check Docker daemon
     if ! docker info &> /dev/null; then
-        log_error "Docker daemon не запущен"
+        log_error "❌ Docker daemon не запущен. Запустите Docker Desktop."
         exit 1
     fi
 
-    # Проверка образа
-    if ! docker image inspect "$IMAGE" &> /dev/null; then
-        log_warning "Образ $IMAGE не найден, будет загружен при первом запуске"
+    # Check Docker version
+    local docker_version=$(docker version --format '{{.Server.Version}}' 2>/dev/null)
+    local min_version="20.10.0"
+
+    if [[ -n "$docker_version" ]]; then
+        if ! version_gte "$docker_version" "$min_version"; then
+            log_warning "⚠️  Docker версии $docker_version < $min_version (рекомендуется обновление)"
+        else
+            log_success "✅ Docker версия: $docker_version"
+        fi
+    else
+        log_warning "⚠️  Не удалось определить версию Docker"
+    fi
+
+    # Check available disk space
+    local required_space_mb=1000  # 1GB
+    local available_space=$(df -m . | tail -1 | awk '{print $4}')
+
+    if [[ "$available_space" -lt "$required_space_mb" ]]; then
+        log_warning "⚠️  Мало места на диске: ${available_space}MB (рекомендуется ${required_space_mb}MB)"
+    else
+        log_success "✅ Доступно места: ${available_space}MB"
+    fi
+
+    # Check Docker Compose (optional)
+    if command -v docker-compose &> /dev/null; then
+        log_success "✅ Docker Compose установлен"
+    else
+        log_info "ℹ️  Docker Compose не найден (опционально)"
     fi
 }
 
