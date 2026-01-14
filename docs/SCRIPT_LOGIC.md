@@ -417,9 +417,18 @@ chmod 600 secrets/.env
 
 **Проблема**: Claude Code показывает экран onboarding при каждом запуске контейнера.
 
-**Решение**: Автоматическая установка флага `hasCompletedOnboarding: true` в `~/.claude/.claude.json`.
+**Решение**: Автоматическая установка флага `hasCompletedOnboarding: true` в `~/.claude.json`.
 
-**Функция**: `set_onboarding_flag()` (glm-launch.sh:492-557)
+**Функция**: `set_onboarding_flag()` (glm-launch.sh:492-562)
+
+**Критически важно:** После исследования официальной документации и GitHub issues (#13827, #4714) установлено, что:
+- ✅ **Правильный файл:** `~/.claude.json` (официальный конфигурационный файл)
+- ⚠️ **Не тот файл:** `~/.claude/.claude.json` (бэкап/копия, созданная при операциях контейнера)
+
+**Источники:**
+- https://code.claude.com/docs/en/settings.md
+- https://github.com/anthropics/claude-code/issues/13827
+- https://github.com/anthropics/claude-code/issues/4714
 
 **Алгоритм**:
 ```
@@ -427,27 +436,27 @@ chmod 600 secrets/.env
 │              ONBOARDING BYPASS WORKFLOW                      │
 └─────────────────────────────────────────────────────────────┘
 
-1. Check .claude.json exists
+1. Check ~/.claude.json exists (ПРАВИЛЬНЫЙ ФАЙЛ!)
    └─> Если не существует → skip (first run)
 
 2. Check if already set (idempotent)
-   └─> jq -e '.hasCompletedOnboarding == true'
+   └─> jq -e '.hasCompletedOnboarding == true' ~/.claude.json
    └─> Если уже true → skip
 
 3. Create backup (defensive)
-   └─> cp ~/.claude/.claude.json ~/.claude/.claude.json.bak.$$
+   └─> cp ~/.claude.json ~/.claude.json.bak.$$
 
 4. Atomic write with jq
-   └─> jq '.hasCompletedOnboarding = true' > temp file
+   └─> jq '.hasCompletedOnboarding = true' ~/.claude.json > temp
 
 5. Validate JSON
    └─> jq empty temp_file
 
 6. Atomic move
-   └─> mv temp → ~/.claude/.claude.json
+   └─> mv temp → ~/.claude.json
 
 7. Verify success
-   └─> jq -e '.hasCompletedOnboarding == true'
+   └─> jq -e '.hasCompletedOnboarding == true' ~/.claude.json
    └─> Если failed → restore from backup
 ```
 
@@ -489,7 +498,10 @@ fi
 - ✅ **Graceful degradation**: Продолжает работу если jq недоступен
 - ✅ **Scope**: Аffects ALL Claude Code projects (user-level config)
 
-**Важно**: `hasCompletedOnboarding` находится в `~/.claude/.claude.json`, а не в `settings.json`. Это глобальная настройка пользователя, а не проектная.
+**Критически важно:**
+- ✅ **Правильный файл:** `~/.claude.json` (домашняя директория)
+- ⚠️ **НЕ тот файл:** `~/.claude/.claude.json` (бэкап/копия)
+- 📚 **Доказательство:** Официальная документация + GitHub issues #13827, #4714
 
 ---
 

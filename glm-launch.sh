@@ -490,11 +490,16 @@ inject_api_key_to_settings() {
 # =============================================================================
 
 set_onboarding_flag() {
-    local claude_json="$HOME/.claude/.claude.json"
+    # P10 Research: ~/.claude.json is the CORRECT file (official config)
+    # ~/.claude/.claude.json appears to be a backup/copy created during container ops
+    # Sources: https://code.claude.com/docs/en/settings.md
+    #          https://github.com/anthropics/claude-code/issues/13827
+    #          https://github.com/anthropics/claude-code/issues/4714
+    local claude_json="$HOME/.claude.json"
 
     # Check if .claude.json exists
     if [[ ! -f "$claude_json" ]]; then
-        log_warning "⚠️  ~/.claude/.claude.json not found (may not exist yet)"
+        log_warning "⚠️  ~/.claude.json not found (may not exist yet)"
         return 0  # Don't fail - file may not exist on first run
     fi
 
@@ -551,7 +556,7 @@ set_onboarding_flag() {
     rm -f "$backup_file"
 
     log_success "✅ Onboarding bypass enabled"
-    log_info "   Location: ~/.claude/.claude.json (user-level config)"
+    log_info "   Location: ~/.claude.json (user-level config)"
     log_info "   Scope: Affects ALL Claude Code projects"
     return 0
 }
