@@ -4,6 +4,26 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 🔴 ОБЯЗАТЕЛЬНОЕ ПРОЧТЕНИЕ КАЖДУЮ СЕССИЮ
+
+**⚠️ КРИТИЧЕСКАЯ ЛОГИКА**: [Script Logic & Settings Management](./docs/SCRIPT_LOGIC.md)
+
+Перед началом работы с кодом **ОБЯЗАТЕЛЬНО** прочитайте логику работы скрипта:
+- Приоритет конфигурационных файлов
+- Расположение токена аутентификации
+- Validation требования
+- Backup/Restore механизм
+
+**Документ**: [docs/SCRIPT_LOGIC.md](./docs/SCRIPT_LOGIC.md)
+
+---
+
+## 🌍 Language Policy
+
+**СТРОГО русский язык**: все коммуникации и артефакты (документация, комментарии, сообщения). Thinking blocks на английском (token optimization). Исключения: bash/docker команды, имена переменных/функций, URLs, git commits.
+
+---
+
 ## 🎯 EXPERT METHODOLOGY (REQUIRED)
 
 ### Core Principle
@@ -288,6 +308,7 @@ Since this is a documentation repository, common tasks include:
 
 ### Advanced Topics
 - **🧪 [Feature Implementation with UAT](./docs/FEATURE_IMPLEMENTATION_WITH_UAT.md)** - **NEW** **MANDATORY** - Complete UAT methodology with templates
+- **🔐 [Defensive Backup/Restore Plan](./docs/DEFENSIVE_BACKUP_RESTORE_PLAN.md)** - **NEW** **CRITICAL** - P8 reliability improvement (backup/restore safety)
 - **📋 [UAT Plans & Templates](./docs/uat/)** - **NEW** - UAT test plans and execution templates
 - **🏆 [Expert Consensus Review](./docs/EXPERT_CONSENSUS_REVIEW.md)** - **NEW** 11-expert panel review with 7 critical improvements
 - **📝 [Implementation Plan](./docs/IMPLEMENTATION_PLAN.md)** - **NEW** Detailed roadmap for all improvements
