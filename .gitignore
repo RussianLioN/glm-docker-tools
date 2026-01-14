@@ -317,3 +317,15 @@ weights/
 .claude-workspace/
 .claude-temp/
 claude-work/.uat-logs/
+
+# Security: API keys and secrets
+.claude/settings.json
+.claude/settings.json.local
+
+# Conversation logs
+conversation-*.txt
+
+# Backup files
+*.backup-before-defensive
+*.bak
+glm-launch.sh.backup-*
