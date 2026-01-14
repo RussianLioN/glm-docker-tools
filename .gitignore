@@ -67,6 +67,25 @@ settings.production.json
 auto/
 .cache/
 
+# P8: Defensive Backup/Restore
+.claude/.settings.backup.*
+.claude/.settings.restore.tmp.*
+.claude/.settings.emergency.*
+.claude/.settings.last_session
+.claude/.backups/
+.claude/settings.json.dkrbkp
+*.dkrbkp
+
+# P9: Secrets Management
+secrets/.env
+secrets/.env.*
+secrets/*.key
+secrets/*.token
+!secrets/.env.example
+!secrets/.gitkeep
+.claude/settings.json.tmp
+.claude/.migration_notification_shown
+
 # OS Specific Files
 .DS_Store
 .DS_Store?
@@ -154,7 +173,7 @@ ca-bundle.crt
 config/secrets.json
 config/production.json
 config/staging.json
-secrets/
+# secrets/ - Managed by P9 patterns (lines 79-86)
 .private/
 
 # Cloud Provider Files
@@ -190,7 +209,7 @@ tracing/
 
 # Project-specific sensitive data
 local-config/
-secrets/
+# secrets/ - Managed by P9 patterns above (lines 79-86)
 private/
 .sensitive/
 
