@@ -42,13 +42,24 @@
 - **[💡 Examples Directory](../examples/README.md)** - Usage examples and patterns
 - **[📝 Nano Editor Setup](./NANO_EDITOR_SETUP.md)** - External editor integration
 
+#### 🔧 **Development Scripts** - **NEW**
+- **[🔧 Scripts Directory](../scripts/)** - **NEW** - Testing, debugging, and deployment automation
+  - [glm-launch.sh](../scripts/glm-launch.sh) - Main launcher with lifecycle modes
+  - [test-container-lifecycle.sh](../scripts/test-container-lifecycle.sh) - Lifecycle testing
+  - [debug-mapping.sh](../scripts/debug-mapping.sh) - Volume mapping diagnostics
+  - [shell-access.sh](../scripts/shell-access.sh) - Convenient shell access for stopped containers
+
 #### 🔬 Research & Validation
 - **[🧪 Experiments Plan](../PRACTICAL_EXPERIMENTS_PLAN.md)** - Validation procedures and testing
 - **[📋 Session Handoff](../SESSION_HANDOFF.md)** - Project status and next steps
 - **[🤖 System Instructions](./system-instruction.md)** - AI methodology and prompts
 
+#### 🗂️ **Archive** - **NEW**
+- **[🗂️ Archive Directory](../archive/)** - **NEW** - Historical documents and deprecated files
+  - [Docker Investigation TODO](../archive/DOCKER_INVESTIGATION_TODO.md) - Historical research notes and investigation log
+
 #### 📚 Reference Materials
-- **[📖 Documentation Index](./Claude-Code-Docs.md)** - All Claude Code official documentation
+- **[📖 Official Documentation Index](./Claude-Code-Docs.md)** - **NEW** - All Claude Code official documentation (complete reference with 50+ docs)
 - **[🎯 Project Review](./PROJECT_REVIEW.md)** - Complete project analysis
 - **[🔄 Variable Reset Analysis](./EXPERT_OPINION_VARIABLE_RESET.md)** - Environment handling
 
