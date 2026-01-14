@@ -2,7 +2,50 @@
 
 ---
 
-## 🔄 CURRENT SESSION - 2025-12-30
+## 🔄 CURRENT SESSION - 2025-12-30 (Extended)
+
+**Session Date**: 2025-12-30
+**Extended Work**: P8 Defensive Backup/Restore Implementation
+**Primary Focus**: Reliability improvement for backup/restore mechanism
+**Completion Status**: 📋 PLANNING → IMPLEMENTATION PHASE
+
+### 🎯 Current Work: P8 Defensive Backup/Restore
+
+**Context**: User identified critical backup/restore issue
+- User scenario: Works with Claude Code Pro + Sonnet (production)
+- Test scenario: GLM container for experiments
+- Requirement: After GLM exit → restore to Sonnet Pro without data loss
+- Critical finding: Current implementation lacks defensive safeguards
+
+**Expert Panel Review** (13 specialists):
+- Average rating: 2.5/5 (5 CRITICAL blockers identified)
+- Key findings:
+  1. ❌ No pre-backup validation (disk space, JSON integrity)
+  2. ❌ No post-backup verification
+  3. ❌ Unchecked cp/mv operations (silent failures)
+  4. ❌ No emergency recovery mechanism
+  5. ❌ No test coverage for backup/restore logic
+
+**Architecture Decision**:
+- ❌ Variant B (read-only mount): REJECTED - Claude Code requires write access to `~/.claude/.claude.json`
+- ✅ Variant A (defensive backup/restore): SELECTED - triple-layer safety approach
+
+**Implementation Plan**: `docs/DEFENSIVE_BACKUP_RESTORE_PLAN.md`
+- Phase 1: Preparation (5 min)
+- Phase 2: backup_system_settings() defensive code (10 min)
+- Phase 3: restore_system_settings() defensive code (10 min)
+- Phase 4: .gitignore updates (2 min)
+- Phase 5: Testing suite (10 min)
+- Phase 6: Integration test (5 min)
+- Phase 7: Recovery guide (3 min)
+- **Total time**: ~45 minutes
+- **Expected reliability**: 98-99% (vs current 95-97%)
+
+**Current Status**: Plan created and integrated, ready for Phase 1
+
+---
+
+## 🔄 PREVIOUS SESSION - 2025-12-30
 
 **Session Date**: 2025-12-30
 **Session Duration**: P6-P7 implementation (Advanced features completion)

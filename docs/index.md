@@ -6,10 +6,13 @@
 
 ### 🔐 **Critical Reading (Must Read)**
 
+#### 🔴 **Script Logic (READ EVERY SESSION)**
+1. **[🔴 Script Logic & Settings Management](./SCRIPT_LOGIC.md)** - **ОБЯЗАТЕЛЬНОЕ ЧТЕНИЕ КАЖДУЮ СЕССИЮ** - Критическая логика работы скрипта
+
 #### 🔒 Security & Authentication
-1. **[🔐 Security Guidelines](../SECURITY.md)** - **MANDATORY** - Security best practices and procedures
-2. **[🔬 Authentication Research](../DOCKER_AUTHENTICATION_RESEARCH.md)** - **CRITICAL** - OAuth and Docker authentication analysis
-3. **[📋 Project Instructions](../CLAUDE.md)** - **IMPORTANT** - Expert methodology and systematic approach
+2. **[🔐 Security Guidelines](../SECURITY.md)** - **MANDATORY** - Security best practices and procedures
+3. **[🔬 Authentication Research](../DOCKER_AUTHENTICATION_RESEARCH.md)** - **CRITICAL** - OAuth and Docker authentication analysis
+4. **[📋 Project Instructions](../CLAUDE.md)** - **IMPORTANT** - Expert methodology and systematic approach
 
 ### 🌟 **Essential Documentation**
 
@@ -22,6 +25,11 @@
 - **[🏗️ Architecture Overview](./DOCKER_MAPPING_DIAGRAM.md)** - Container system design
 - **[🔍 Expert Analysis](./EXPERT_ANALYSIS.md)** - Technical deep-dive and insights
 - **[📊 Multi-Container Analysis](./MULTI_CONTAINER_RISK_ANALYSIS.md)** - Container strategies
+
+#### 📋 Implementation Plans
+- **[📋 Implementation Plan](./IMPLEMENTATION_PLAN.md)** - Overall roadmap for P1-P7 improvements
+- **[🔐 Defensive Backup/Restore Plan](./DEFENSIVE_BACKUP_RESTORE_PLAN.md)** - **NEW** **CRITICAL** - P8 reliability enhancement
+- **[🧪 Feature UAT Methodology](./FEATURE_IMPLEMENTATION_WITH_UAT.md)** - **MANDATORY** - Testing methodology
 
 #### 🔧 Configuration & Setup
 - **[⚙️ Settings Reference](./Claude-Code-settings.md)** - Complete configuration documentation
