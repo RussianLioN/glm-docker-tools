@@ -4,6 +4,51 @@
 
 claude_exit_code=0
 
+# P8: Settings isolation for container layer (defense-in-depth)
+isolate_project_settings() {
+    local backup_file=""
+
+    # Check if project settings exist
+    if [[ ! -f /workspace/.claude/settings.json ]]; then
+        # No project settings - container will use system settings
+        return 0
+    fi
+
+    # Validate project settings (JSON syntax)
+    if ! jq empty /workspace/.claude/settings.json 2>/dev/null; then
+        echo "[ENTRYPOINT] ERROR: Invalid JSON in project settings" >&2
+        return 1
+    fi
+
+    # Validate GLM configuration
+    if ! grep -qE "api\.z\.ai|glm-[0-9]" /workspace/.claude/settings.json; then
+        echo "[ENTRYPOINT] ERROR: Not a GLM configuration" >&2
+        return 1
+    fi
+
+    # Backup system settings if exist
+    if [[ -f /root/.claude/settings.json ]]; then
+        backup_file="/tmp/settings.backup.$$"
+        cp /root/.claude/settings.json "$backup_file"
+    fi
+
+    # Copy project settings to system location
+    cp /workspace/.claude/settings.json /root/.claude/settings.json
+
+    # Set up restoration trap
+    if [[ -n "$backup_file" ]]; then
+        trap "cp '$backup_file' /root/.claude/settings.json 2>/dev/null || true; rm -f '$backup_file'" EXIT INT TERM
+    fi
+
+    return 0
+}
+
+# P8: Apply settings isolation before launching Claude
+if ! isolate_project_settings; then
+    echo "[ENTRYPOINT] ERROR: Settings isolation failed" >&2
+    exit 1
+fi
+
 # Run Claude based on mode and arguments
 case "${CLAUDE_LAUNCH_MODE:-autodel}" in
     "debug")

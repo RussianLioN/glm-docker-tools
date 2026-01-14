@@ -13,6 +13,7 @@ RUN apk add --no-cache \
     g++ \
     tzdata \
     nano \
+    jq \
     && rm -rf /var/cache/apk/*
 
 # Install Claude Code CLI globally using npm
