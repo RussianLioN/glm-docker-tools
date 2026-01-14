@@ -31,12 +31,13 @@
 3. **[🚀 Quick Start](#-quick-start)** - Get running in 5 minutes
 
 #### 🔧 **Setting Up Development?**
-1. **[🌐 Z.AI API Integration](./docs/Claude-Code-GLM.md)** - API configuration
-2. **[⚙️ Settings Reference](./docs/Claude-Code-settings.md)** - Complete configuration
-3. **[📝 Settings Template Guide](./docs/SETTINGS_TEMPLATE_GUIDE.md)** - Ready-to-use configuration template with nano editor
-4. **[🔄 Container Lifecycle Management](./docs/CONTAINER_LIFECYCLE_MANAGEMENT.md)** - **NEW** - Container modes (--debug, --no-del, auto-delete)
-5. **[📝 Nano Editor Setup](./docs/NANO_EDITOR_SETUP.md)** - External editor integration
-6. **[🧪 Testing Scripts](./scripts/)** - Validation tools
+1. **[🔴 Script Logic](./docs/SCRIPT_LOGIC.md)** - **CRITICAL** - Обязательное чтение (логика работы скрипта)
+2. **[🌐 Z.AI API Integration](./docs/Claude-Code-GLM.md)** - API configuration
+3. **[⚙️ Settings Reference](./docs/Claude-Code-settings.md)** - Complete configuration
+4. **[📝 Settings Template Guide](./docs/SETTINGS_TEMPLATE_GUIDE.md)** - Ready-to-use configuration template with nano editor
+5. **[🔄 Container Lifecycle Management](./docs/CONTAINER_LIFECYCLE_MANAGEMENT.md)** - **NEW** - Container modes (--debug, --no-del, auto-delete)
+6. **[📝 Nano Editor Setup](./docs/NANO_EDITOR_SETUP.md)** - External editor integration
+7. **[🧪 Testing Scripts](./scripts/)** - Validation tools
 
 #### 🚀 **Deploying to Production?**
 1. **[🔬 Authentication Research](./DOCKER_AUTHENTICATION_RESEARCH.md)** - Critical security analysis
@@ -50,7 +51,8 @@
 4. **[📚 Usage Guide](./docs/USAGE_GUIDE.md)** - Common workflows
 5. **[🔍 Expert Analysis](./docs/EXPERT_ANALYSIS.md)** - Technical insights
 6. **[🎯 Project Review](./docs/PROJECT_REVIEW.md)** - Complete project analysis
-7. **[📚 Documentation Hub](./docs/index.md)** - **COMPLETE NAVIGATION** - All docs and search
+7. **[🔐 Defensive Backup/Restore](./docs/DEFENSIVE_BACKUP_RESTORE_PLAN.md)** - **NEW** - Settings backup/restore reliability
+8. **[📚 Documentation Hub](./docs/index.md)** - **COMPLETE NAVIGATION** - All docs and search
 
 ## 🚀 Quick Start
 
@@ -62,16 +64,36 @@
 
 ### Installation
 
+**Option 1: Interactive Setup (Recommended)**
+
 ```bash
 # Clone the repository
 git clone https://github.com/s060874gmail/claude-code-docker.git
 cd claude-code-docker
 
-# Copy configuration template
-cp .claude/settings.template.json .claude/settings.json
+# Run interactive setup
+./setup-secrets.sh
 
-# Edit configuration with your API token
-nano .claude/settings.json
+# Launch Claude Code
+./glm-launch.sh
+```
+
+**Option 2: Manual Setup**
+
+```bash
+# Clone the repository
+git clone https://github.com/s060874gmail/claude-code-docker.git
+cd claude-code-docker
+
+# Create secrets directory
+mkdir -p secrets
+
+# Add your API key
+echo 'GLM_API_KEY=your_key_here' > secrets/.env
+chmod 600 secrets/.env
+
+# Launch Claude Code
+./glm-launch.sh
 ```
 
 ### Basic Usage
