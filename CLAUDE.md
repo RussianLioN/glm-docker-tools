@@ -172,7 +172,11 @@ Rollback: [Reversal steps]
 - **Environment variables** - Available configuration options
 - **Tools available to Claude** - Understanding Claude's capabilities and permissions
 
-### Key Documentation Topics (from local [Claude-Code-Docs.md](./docs/Claude-Code-Docs.md))
+### Key Documentation Topics
+
+**Primary**: [📖 Official Documentation Index](./docs/Claude-Code-Docs.md) - Complete Claude Code documentation reference
+
+**Quick Links**:
 - **[Set up Claude Code](https://code.claude.com/docs/en/setup.md)** - Installation and authentication
 - **[CLI reference](https://code.claude.com/docs/en/cli-reference.md)** - Complete command-line interface reference
 - **[Common workflows](https://code.claude.com/docs/en/common-workflows.md)** - Typical usage patterns

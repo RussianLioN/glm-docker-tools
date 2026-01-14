@@ -431,7 +431,12 @@ docker exec -it claude-debug du -sh /root/.claude
 - **[📝 Settings Template Guide](./docs/SETTINGS_TEMPLATE_GUIDE.md)** - Ready-to-use configuration with nano editor
 - **[🔄 Container Lifecycle Management](./docs/CONTAINER_LIFECYCLE_MANAGEMENT.md)** - **NEW** - Container modes (--debug, --no-del, auto-delete)
 - **[📝 Configuration Template](./.claude/settings.template.json)** - Safe settings template
-- **[🔧 Development Scripts](./scripts/)** - Testing and debugging tools
+- **[🔧 Development Scripts](./scripts/)** - Complete scripts documentation with usage examples
+  - [glm-launch.sh](./scripts/glm-launch.sh) - Main launcher with lifecycle modes (--debug, --no-del, auto-delete)
+  - [test-container-lifecycle.sh](./scripts/test-container-lifecycle.sh) - Lifecycle testing and validation
+  - [debug-mapping.sh](./scripts/debug-mapping.sh) - Volume mapping diagnostics
+  - [shell-access.sh](./scripts/shell-access.sh) - Convenient shell access for stopped containers
+  - [test-claude.sh](./scripts/test-claude.sh) - Claude Code functionality tests
 - **[📝 Nano Editor Setup](./docs/NANO_EDITOR_SETUP.md)** - External editor integration
 
 #### 🐳 Docker Infrastructure
@@ -484,7 +489,11 @@ docker exec -it claude-debug du -sh /root/.claude
 - **[⚙️ Configuration](./.claude/settings.template.json)** | **[🔧 Scripts](./scripts/)** | **[📖 Docs](./docs/)**
 
 #### 🔍 **Troubleshooting**
-- **[🔧 Debug Script](./scripts/debug-mapping.sh)** | **[📚 Usage Guide](./docs/USAGE_GUIDE.md)** | **[🔍 Expert Analysis](./docs/EXPERT_ANALYSIS.md)**
+- **[🔧 Debug Tools](./scripts/debug-mapping.sh)** - Volume mapping diagnostics
+- **[🔧 Nano Troubleshooting](./TROUBLESHOOTING_NANO.md)** - **NEW** - Nano editor errors and solutions
+- **[🔄 Container Lifecycle Management](./docs/CONTAINER_LIFECYCLE_MANAGEMENT.md)** - Complete lifecycle guide
+- **[📚 Usage Guide](./docs/USAGE_GUIDE.md)** - Daily operations and workflows
+- **[🔍 Expert Analysis](./docs/EXPERT_ANALYSIS.md)** - Technical insights
 
 ## 📁 Project Structure
 
