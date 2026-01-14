@@ -243,6 +243,10 @@ export VISUAL=nano
 
 ---
 
+> 💡 **Troubleshooting**: If you encounter nano errors or configuration issues, see [Nano Troubleshooting Guide](../../TROUBLESHOOTING_NANO.md) for common problems and solutions.
+
+---
+
 **Version**: 1.1.0
 **Last Updated**: 2025-12-22
 **Status**: ✅ Implemented and Tested

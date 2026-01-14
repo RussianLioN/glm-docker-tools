@@ -1374,6 +1374,10 @@ Next Steps:
 - ✅ **2025-12-23**: Container lifecycle management, GLM configuration
 - ✅ **2025-12-22**: Nano editor integration
 
+### Archive Access
+- **[🗂️ Archive Directory](./archive/)** - Historical documents and deprecated files
+  - [Docker Investigation TODO](./archive/DOCKER_INVESTIGATION_TODO.md) - Historical research notes and investigation log
+
 ---
 
 **Handoff Complete** ✅
