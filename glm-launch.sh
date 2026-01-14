@@ -22,6 +22,13 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
+# Settings isolation tracking (P8)
+SETTINGS_BACKUP=""
+SETTINGS_AUTO_CREATED=false
+
+# Interactive mode detection (P9 Variant C)
+NON_INTERACTIVE=false
+
 log_info() {
     echo -e "${BLUE}[INFO]${NC} $1"
 }
@@ -74,6 +81,84 @@ log_metric() {
     echo "{\"timestamp\":\"$timestamp\",\"metric\":\"$metric\",\"value\":\"$value\"}" >> "$metrics_file" 2>/dev/null || true
 }
 
+# =============================================================================
+# P9 Variant C: Detect Interactive Mode
+# =============================================================================
+
+detect_interactive_mode() {
+    # Check 1: Explicit flags (highest priority)
+    if [[ "${1:-}" == "--ci" ]] || [[ "${1:-}" == "--non-interactive" ]]; then
+        NON_INTERACTIVE=true
+        return 0
+    fi
+
+    # Check 2: CI environment variables (common CI systems)
+    if [[ "${CI:-}" == "true" ]] || \
+       [[ "${GITHUB_ACTIONS:-}" == "true" ]] || \
+       [[ "${GITLAB_CI:-}" == "true" ]] || \
+       [[ "${JENKINS_HOME:-}" ]]; then
+        NON_INTERACTIVE=true
+        return 0
+    fi
+
+    # Check 3: TTY detection (most reliable)
+    if ! tty -s <&1; then
+        NON_INTERACTIVE=true
+        return 0
+    fi
+
+    # Default: Interactive mode
+    NON_INTERACTIVE=false
+    return 0
+}
+
+# =============================================================================
+# P9: Show Migration Notification (One-time)
+# =============================================================================
+
+show_migration_notification() {
+    local notification_file="./.claude/.migration_notification_shown"
+
+    # Check if notification was already shown for this project
+    if [[ -f "$notification_file" ]]; then
+        return 0
+    fi
+
+    cat << 'EOF' >&2
+⚠️  API Key Loaded from Legacy Source
+
+   Current source: .claude/settings.json (Priority 3)
+
+   Migration recommended: secrets/.env (Priority 2)
+
+   Benefits of migration:
+   ✓ GitOps compliance (single source of truth)
+   ✓ Better security (secrets/ directory with .gitignore)
+   ✓ CI/CD friendly (env var override)
+   ✓ Future-proof (upcoming features)
+
+   Quick migration:
+   ┌────────────────────────────────────────────────────────────┐
+   │  ./setup-secrets.sh                                       │
+   └────────────────────────────────────────────────────────────┘
+
+   Or manually:
+   ┌────────────────────────────────────────────────────────────┐
+   │  mkdir -p secrets                                         │
+   │  echo 'GLM_API_KEY=...' > secrets/.env                    │
+   │  chmod 600 secrets/.env                                   │
+   └────────────────────────────────────────────────────────────┘
+
+   See: docs/SECRETS_MANAGEMENT.md
+
+EOF
+
+    # Create marker file to prevent spam (only if .claude exists)
+    if [[ -d "./.claude" ]]; then
+        touch "$notification_file" 2>/dev/null || true
+    fi
+}
+
 # Конфигурация с умолчаниями
 CLAUDE_HOME="${CLAUDE_HOME:-$HOME/.claude}"
 WORKSPACE="${WORKSPACE:-$(pwd)}"
@@ -99,6 +184,7 @@ Claude Code Launcher - Чистое решение для запуска Claude 
     --dry-run          Показать команду запуска без выполнения
     --debug            Debug режим: сохранить контейнер и предоставить shell доступ
     --no-del           Сохранить контейнер после выхода (без автоудаления)
+    --ci               CI/CD режим: неинтерактивный, fail-fast (без авто-setup)
 
 Переменные окружения:
     CLAUDE_HOME        Директория Claude (по умолчанию: ~/.claude)
@@ -129,6 +215,423 @@ create_backup() {
     else
         log_warning "Директория ~/.claude не найдена, backup не создан"
     fi
+}
+
+# P8: Validate GLM configuration in settings.json
+validate_glm_settings() {
+    local settings_file="$1"
+
+    # Check file exists
+    if [[ ! -f "$settings_file" ]]; then
+        return 1
+    fi
+
+    # Validate JSON syntax
+    if ! jq empty "$settings_file" 2>/dev/null; then
+        log_error "Invalid JSON in $settings_file"
+        return 1
+    fi
+
+    # Check for GLM configuration markers
+    if ! grep -qE "api\.z\.ai|glm-[0-9]" "$settings_file"; then
+        log_error "Not a GLM configuration (missing api.z.ai or glm model)"
+        return 1
+    fi
+
+    # Validate required fields
+    if ! jq -e '.ANTHROPIC_BASE_URL, .ANTHROPIC_MODEL, .ANTHROPIC_AUTH_TOKEN' "$settings_file" >/dev/null 2>&1; then
+        log_error "Missing required fields in settings.json"
+        return 1
+    fi
+
+    return 0
+}
+
+# P8: Auto-create project settings.json if missing (silent operation)
+auto_create_project_settings() {
+    # Check if project settings already exist
+    if [[ -f "./.claude/settings.json" ]]; then
+        return 0  # Already exists, nothing to do
+    fi
+
+    # Create .claude directory if needed
+    mkdir -p "./.claude"
+
+    # Priority 1: Use project GLM template (ALWAYS trusted source for GLM)
+    if [[ -f "./.claude/settings.template.json" ]]; then
+        cp "./.claude/settings.template.json" "./.claude/settings.json"
+        chmod 600 "./.claude/settings.json"
+        SETTINGS_AUTO_CREATED=true
+        return 0
+    fi
+
+    # Priority 2: Create minimal hardcoded GLM configuration
+    # Note: Token placeholder - user must replace with actual GLM API key via P9
+    cat > "./.claude/settings.json" <<'EOF'
+{
+  "ANTHROPIC_AUTH_TOKEN": "YOUR_GLM_API_KEY_HERE",
+  "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
+  "ANTHROPIC_DEFAULT_HAIKU_MODEL": "glm-4.5-air",
+  "ANTHROPIC_DEFAULT_OPUS_MODEL": "glm-4.7",
+  "ANTHROPIC_DEFAULT_SONNET_MODEL": "glm-4.7",
+  "ANTHROPIC_MODEL": "glm-4.7",
+  "env": {
+    "ANTHROPIC_AUTH_TOKEN": "YOUR_GLM_API_KEY_HERE",
+    "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "glm-4.5-air",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "glm-4.7",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "glm-4.7",
+    "ANTHROPIC_MODEL": "glm-4.7",
+    "alwaysThinkingEnabled": "true"
+  },
+  "includeCoAuthoredBy": false
+}
+EOF
+    chmod 600 "./.claude/settings.json"
+    SETTINGS_AUTO_CREATED=true
+
+    echo "📝 Создан GLM конфигурационный файл из встроенного шаблона" >&2
+    echo "   Используйте secrets/.env для указания API ключа" >&2
+
+    return 0
+}
+
+# P9: Load API secret from secure sources (Priority chain)
+load_api_secret() {
+    local secret_value=""
+    local legacy_source=false  # Track if key loaded from legacy settings.json
+
+    # Priority 1: Environment variable (CI/CD, runtime)
+    if [[ -n "${GLM_API_KEY:-}" ]]; then
+        secret_value="$GLM_API_KEY"
+    elif [[ -n "${ANTHROPIC_AUTH_TOKEN:-}" ]]; then
+        secret_value="$ANTHROPIC_AUTH_TOKEN"
+    fi
+
+    # Priority 2: Secrets file
+    if [[ -z "$secret_value" && -f "secrets/.env" ]]; then
+        # Validate file permissions (warn if insecure) - output to stderr
+        local perms
+        perms=$(stat -f%A "secrets/.env" 2>/dev/null || stat -c%a "secrets/.env" 2>/dev/null)
+        if [[ "$perms" != "600" && "$perms" != "400" ]]; then
+            echo "⚠️  Insecure permissions on secrets/.env: $perms (should be 600)" >&2
+        fi
+
+        # Extract GLM_API_KEY (explicit whitelist)
+        secret_value=$(grep -E "^GLM_API_KEY=" "secrets/.env" 2>/dev/null | cut -d'=' -f2- | head -1)
+        # Remove surrounding quotes if present
+        secret_value="${secret_value%\"}"
+        secret_value="${secret_value#\"}"
+        secret_value="${secret_value%\'}"
+        secret_value="${secret_value#\'}"
+
+        # Fallback to ANTHROPIC_AUTH_TOKEN
+        if [[ -z "$secret_value" ]]; then
+            secret_value=$(grep -E "^ANTHROPIC_AUTH_TOKEN=" "secrets/.env" 2>/dev/null | cut -d'=' -f2- | head -1)
+            # Remove surrounding quotes if present
+            secret_value="${secret_value%\"}"
+            secret_value="${secret_value#\"}"
+            secret_value="${secret_value%\'}"
+            secret_value="${secret_value#\'}"
+        fi
+    fi
+
+    # Priority 3: Existing settings.json (backward compatibility)
+    if [[ -z "$secret_value" && -f "./.claude/settings.json" ]]; then
+        secret_value=$(jq -r '.ANTHROPIC_AUTH_TOKEN // empty' "./.claude/settings.json" 2>/dev/null)
+        if [[ -z "$secret_value" || "$secret_value" == "YOUR_GLM_API_KEY_HERE" ]]; then
+            secret_value=""
+        else
+            legacy_source=true  # Mark as loaded from legacy source
+        fi
+    fi
+
+    # Priority 4: Handle missing secret (Variant C - Hybrid)
+    if [[ -z "$secret_value" ]]; then
+        if [[ "$NON_INTERACTIVE" == "true" ]]; then
+            # Variant A: Fail-fast for CI/CD (machine-readable)
+            echo "ERROR: GLM_API_KEY not found in secrets file or environment" >&2
+            echo "" >&2
+            echo "To fix:" >&2
+            echo "  - Run './setup-secrets.sh' in interactive terminal" >&2
+            echo "  - Or set GLM_API_KEY environment variable" >&2
+            echo "  - Or create secrets/.env file manually" >&2
+            echo "" >&2
+            echo "Get your API key from: https://z.ai/settings/api-keys" >&2
+            return 1
+        else
+            # Variant B: Auto-launch setup for interactive users (user-friendly)
+            cat << 'EOF'
+┌─────────────────────────────────────────────────────────────────┐
+│  🔑 API Key Not Found                                            │
+│                                                                  │
+│  Let's get you set up! This will only take a minute.            │
+│                                                                  │
+│  Starting interactive setup...                                   │
+└─────────────────────────────────────────────────────────────────┘
+EOF
+
+            # Check if setup-secrets.sh exists
+            if [[ ! -f "./setup-secrets.sh" ]]; then
+                echo "❌ ERROR: setup-secrets.sh not found!" >&2
+                echo "" >&2
+                echo "   Please download it from the repository" >&2
+                return 1
+            fi
+
+            # Execute setup script (direct call, NOT exec - preserves shell context)
+            "./setup-secrets.sh"
+            local exit_code=$?
+
+            # Check if setup succeeded
+            if (( exit_code != 0 )); then
+                echo "" >&2
+                echo "❌ Setup failed or was cancelled" >&2
+                echo "" >&2
+                echo "   To try again manually:" >&2
+                echo "   ┌────────────────────────────────────────────────────────────┐" >&2
+                echo "   │  ./setup-secrets.sh                                       │" >&2
+                echo "   └────────────────────────────────────────────────────────────┘" >&2
+                echo "" >&2
+                echo "   Or create secrets file manually:" >&2
+                echo "   ┌────────────────────────────────────────────────────────────┐" >&2
+                echo "   │  mkdir -p secrets                                         │" >&2
+                echo "   │  echo 'GLM_API_KEY=your_key_here' > secrets/.env         │" >&2
+                echo "   │  chmod 600 secrets/.env                                   │" >&2
+                echo "   └────────────────────────────────────────────────────────────┘" >&2
+                echo "" >&2
+                echo "   Get your API key from: https://z.ai/settings/api-keys" >&2
+                return 1
+            fi
+
+            # Reload secret after successful setup
+            echo "" >&2
+            echo "✅ Setup completed! Reloading API key..." >&2
+
+            # Try loading from secrets file again
+            if [[ -f "secrets/.env" ]]; then
+                secret_value=$(grep -E "^GLM_API_KEY=" "secrets/.env" 2>/dev/null | cut -d'=' -f2- | head -1)
+                secret_value="${secret_value%\"}"
+                secret_value="${secret_value#\"}"
+                secret_value="${secret_value%\'}"
+                secret_value="${secret_value#\'}"
+            fi
+
+            # Final verification
+            if [[ -z "$secret_value" ]]; then
+                echo "❌ Setup completed but API key still not found!" >&2
+                echo "   Please run './setup-secrets.sh' manually to debug" >&2
+                return 1
+            fi
+
+            echo "✅ API key loaded successfully!" >&2
+        fi
+    fi
+
+    # Show migration notification if key loaded from legacy source
+    if [[ "$legacy_source" == "true" && ! -f "secrets/.env" ]]; then
+        show_migration_notification
+    fi
+
+    # Final validation: check key length - output to stderr
+    if [[ ${#secret_value} -lt 32 ]]; then
+        echo "⚠️  API key appears too short (${#secret_value} chars)" >&2
+    fi
+
+    # Output ONLY the secret value to stdout
+    echo "$secret_value"
+    return 0
+}
+
+# P9: Inject API key into settings.json from template
+inject_api_key_to_settings() {
+    local api_key="$1"
+    local template="./.claude/settings.template.json"
+    local output="./.claude/settings.json"
+
+    # Create .claude directory if needed
+    mkdir -p "./.claude"
+
+    # Check if settings.json already exists with valid key
+    if [[ -f "$output" ]]; then
+        local existing_key
+        existing_key=$(jq -r '.ANTHROPIC_AUTH_TOKEN // empty' "$output" 2>/dev/null)
+        if [[ "$existing_key" == "$api_key" ]]; then
+            echo "✅ API key already injected in settings.json" >&2
+            return 0
+        fi
+    fi
+
+    # Check template exists
+    if [[ ! -f "$template" ]]; then
+        echo "❌ Template not found: $template" >&2
+        return 1
+    fi
+
+    # Inject API key using jq (atomic operation) - inject in BOTH locations
+    if ! jq --arg token "$api_key" \
+        '.ANTHROPIC_AUTH_TOKEN = $token | .env.ANTHROPIC_AUTH_TOKEN = $token' \
+        "$template" > "$output.tmp" 2>/dev/null; then
+        echo "❌ Failed to inject API key into settings" >&2
+        rm -f "$output.tmp"
+        return 1
+    fi
+
+    # Atomic move
+    mv "$output.tmp" "$output"
+    chmod 600 "$output"
+
+    echo "✅ API key injected into settings.json" >&2
+    return 0
+}
+
+# P8: Backup system settings before launch (Defensive implementation)
+backup_system_settings() {
+    if [[ ! -f "$CLAUDE_HOME/settings.json" ]]; then
+        return 0  # No settings to backup
+    fi
+
+    # Layer 1: Pre-backup validation
+
+    # Validate source JSON structure
+    if ! jq empty "$CLAUDE_HOME/settings.json" 2>/dev/null; then
+        log_error "❌ Source settings.json corrupted, cannot backup"
+        log_error "   File: $CLAUDE_HOME/settings.json"
+        return 1
+    fi
+
+    # Check disk space (minimum 1MB = 1024KB)
+    local available=$(df -k "$CLAUDE_HOME" | awk 'NR==2 {print $4}')
+    if [[ $available -lt 1024 ]]; then
+        log_error "❌ Insufficient disk space for backup (need 1MB, have ${available}KB)"
+        return 1
+    fi
+
+    # Check write permissions
+    if [[ ! -w "$CLAUDE_HOME" ]]; then
+        log_error "❌ No write permission to $CLAUDE_HOME"
+        return 1
+    fi
+
+    # Layer 2: Atomic backup with verification
+
+    local backup_file="$CLAUDE_HOME/.settings.backup.$$"
+
+    # Atomic copy
+    if ! cp "$CLAUDE_HOME/settings.json" "$backup_file"; then
+        log_error "❌ Failed to create backup"
+        return 1
+    fi
+
+    # Verify backup integrity (JSON validation)
+    if ! jq empty "$backup_file" 2>/dev/null; then
+        log_error "❌ Backup corrupted after creation"
+        rm -f "$backup_file"
+        return 1
+    fi
+
+    # Verify file size matches
+    local orig_size=$(stat -f%z "$CLAUDE_HOME/settings.json" 2>/dev/null || stat -c%s "$CLAUDE_HOME/settings.json" 2>/dev/null)
+    local backup_size=$(stat -f%z "$backup_file" 2>/dev/null || stat -c%s "$backup_file" 2>/dev/null)
+
+    if [[ $backup_size -ne $orig_size ]]; then
+        log_error "❌ Backup size mismatch (original: ${orig_size}B, backup: ${backup_size}B)"
+        rm -f "$backup_file"
+        return 1
+    fi
+
+    # Layer 3: Backup rotation (keep last 3)
+
+    local backup_dir="$CLAUDE_HOME/.backups"
+    mkdir -p "$backup_dir"
+
+    # Copy verified backup to persistent location
+    local timestamp=$(date +%Y%m%d-%H%M%S)
+    cp "$backup_file" "$backup_dir/settings-$timestamp.json"
+
+    # Rotate old backups (keep last 3)
+    ls -t "$backup_dir"/settings-*.json 2>/dev/null | tail -n +4 | xargs -r rm -f 2>/dev/null || true
+
+    log_success "✅ Backup created and verified: $backup_file"
+    log_info "   Persistent backup: $backup_dir/settings-$timestamp.json"
+
+    echo "$backup_file"
+    return 0
+}
+
+# P8: Restore system settings after container exit (Defensive implementation)
+restore_system_settings() {
+    local backup_file="$1"
+
+    if [[ -z "$backup_file" || ! -f "$backup_file" ]]; then
+        log_info "ℹ️  No backup to restore"
+        return 0
+    fi
+
+    # Layer 1: Pre-restore validation
+
+    # Validate backup before restore
+    if ! jq empty "$backup_file" 2>/dev/null; then
+        log_error "❌ Backup file corrupted, cannot restore"
+        log_error "   Backup location: $backup_file"
+        log_error "   💡 Manual recovery: cp $backup_file $CLAUDE_HOME/settings.json"
+        return 1
+    fi
+
+    # Layer 2: Atomic restore with emergency backup
+
+    # Create temporary restore for testing
+    local temp_restore="$CLAUDE_HOME/.settings.restore.tmp.$$"
+    if ! cp "$backup_file" "$temp_restore"; then
+        log_error "❌ Failed to create temporary restore"
+        return 1
+    fi
+
+    # Create emergency backup of current settings (in case restore fails)
+    local emergency_backup="$CLAUDE_HOME/.settings.emergency.$$"
+    if [[ -f "$CLAUDE_HOME/settings.json" ]]; then
+        cp "$CLAUDE_HOME/settings.json" "$emergency_backup" 2>/dev/null || true
+    fi
+
+    # Atomic restore (mv is atomic on same filesystem)
+    if ! mv "$temp_restore" "$CLAUDE_HOME/settings.json"; then
+        log_error "❌ Failed to restore settings"
+
+        # Attempt emergency recovery
+        if [[ -f "$emergency_backup" ]]; then
+            log_warning "⚠️  Attempting emergency recovery..."
+            if mv "$emergency_backup" "$CLAUDE_HOME/settings.json" 2>/dev/null; then
+                log_success "✅ Emergency recovery successful"
+            else
+                log_error "❌ Emergency recovery failed"
+                log_error "   💡 Manual recovery needed: $backup_file or $emergency_backup"
+            fi
+        fi
+        return 1
+    fi
+
+    log_success "✅ System settings restored: $CLAUDE_HOME/settings.json"
+
+    # Layer 3: Cleanup and archival
+
+    # Keep backup for emergency recovery (don't delete immediately)
+    local safe_backup="$CLAUDE_HOME/.settings.last_session"
+    if ! mv "$backup_file" "$safe_backup" 2>/dev/null; then
+        # If move fails, at least try to remove temp backup
+        rm -f "$backup_file" 2>/dev/null || true
+    fi
+
+    # Remove emergency backup (restore succeeded)
+    rm -f "$emergency_backup" 2>/dev/null || true
+
+    # Backup project settings if auto-created
+    if [[ "$SETTINGS_AUTO_CREATED" == "true" && -f "./.claude/settings.json" ]]; then
+        if cp "./.claude/settings.json" "./.claude/settings.json.dkrbkp" 2>/dev/null; then
+            log_info "   Project settings backed up: ./.claude/settings.json.dkrbkp"
+        fi
+    fi
+
+    return 0
 }
 
 # Version comparison function
@@ -318,6 +821,33 @@ test_configuration() {
 run_claude() {
     local claude_args=("$@")
 
+    # P9 Variant C: Detect interactive mode before loading secrets
+    detect_interactive_mode "${1:-}"
+
+    # P9: Load API secret from secure sources (Priority chain)
+    local api_key
+    api_key=$(load_api_secret)
+    if [[ $? -ne 0 ]]; then
+        exit 1
+    fi
+
+    # P9: Inject API key into settings.json
+    if ! inject_api_key_to_settings "$api_key"; then
+        log_error "Failed to configure API key"
+        exit 1
+    fi
+
+    # P8: Validate project GLM configuration
+    if [[ -f "./.claude/settings.json" ]]; then
+        if ! validate_glm_settings "./.claude/settings.json"; then
+            log_error "Project settings validation failed"
+            exit 1
+        fi
+    fi
+
+    # P8: Backup system settings
+    SETTINGS_BACKUP=$(backup_system_settings)
+
     # Генерация уникального имени контейнера
     local timestamp=$(date +%s)
     CONTAINER_NAME="glm-docker-${timestamp}"
@@ -485,6 +1015,11 @@ cleanup() {
             fi
         fi
     fi
+
+    # P8: Restore system settings if backup exists
+    if [[ -n "$SETTINGS_BACKUP" ]]; then
+        restore_system_settings "$SETTINGS_BACKUP"
+    fi
 }
 
 # Разбор аргументов командной строки
@@ -520,6 +1055,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --no-del)
             NO_DEL_MODE=true
+            shift
+            ;;
+        --ci|--non-interactive)
+            NON_INTERACTIVE=true
             shift
             ;;
         --)
