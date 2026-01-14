@@ -131,6 +131,25 @@ docker run -it \
 
 > 💡 **推荐**: Use standard mode for everyday work (auto-cleanup), switch to `--debug` when troubleshooting issues.
 
+### 🔑 Skip Onboarding Screen
+
+To skip the Claude Code onboarding screen that appears on first launch:
+
+```bash
+# Add to secrets/.env
+echo "CLAUDE_SKIP_ONBOARDING=true" >> secrets/.env
+
+# Or set environment variable
+export CLAUDE_SKIP_ONBOARDING=true
+./glm-launch.sh
+```
+
+**Note**: This sets `hasCompletedOnboarding: true` in `~/.claude/.claude.json` (user-level config), which affects ALL Claude Code projects.
+
+**Requirements**: `jq` must be installed (automatically checked by the script).
+
+---
+
 ## 🌐 GLM Configuration
 
 ### Project-Specific GLM Settings

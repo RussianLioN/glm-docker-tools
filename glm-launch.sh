@@ -485,6 +485,77 @@ inject_api_key_to_settings() {
     return 0
 }
 
+# =============================================================================
+# P10: Set Onboarding Bypass Flag (Defensive implementation)
+# =============================================================================
+
+set_onboarding_flag() {
+    local claude_json="$HOME/.claude/.claude.json"
+
+    # Check if .claude.json exists
+    if [[ ! -f "$claude_json" ]]; then
+        log_warning "⚠️  ~/.claude/.claude.json not found (may not exist yet)"
+        return 0  # Don't fail - file may not exist on first run
+    fi
+
+    # 1. Check if already set (idempotent)
+    if jq -e '.hasCompletedOnboarding == true' "$claude_json" 2>/dev/null; then
+        log_info "✅ Onboarding already completed"
+        return 0
+    fi
+
+    # 2. Create backup (defensive implementation)
+    local backup_file="${claude_json}.bak.$$"
+    if ! cp "$claude_json" "$backup_file"; then
+        log_error "❌ Failed to create backup of .claude.json"
+        return 1
+    fi
+
+    # 3. Atomic write with jq
+    local tmp_file=$(mktemp)
+    if ! jq '.hasCompletedOnboarding = true' "$claude_json" > "$tmp_file" 2>/dev/null; then
+        log_error "❌ Failed to set onboarding flag"
+        rm -f "$tmp_file"
+        rm -f "$backup_file"
+        return 1
+    fi
+
+    # 4. Validate JSON
+    if ! jq empty "$tmp_file" 2>/dev/null; then
+        log_error "❌ Generated invalid JSON"
+        rm -f "$tmp_file"
+        rm -f "$backup_file"
+        return 1
+    fi
+
+    # 5. Atomic move
+    if ! mv "$tmp_file" "$claude_json"; then
+        log_error "❌ Failed to write .claude.json"
+        rm -f "$tmp_file"
+        # Restore from backup
+        cp "$backup_file" "$claude_json"
+        rm -f "$backup_file"
+        return 1
+    fi
+
+    # 6. Verify success
+    if ! jq -e '.hasCompletedOnboarding == true' "$claude_json" 2>/dev/null; then
+        log_error "❌ Flag verification failed"
+        # Restore from backup
+        cp "$backup_file" "$claude_json"
+        rm -f "$backup_file"
+        return 1
+    fi
+
+    # Clean up backup on success
+    rm -f "$backup_file"
+
+    log_success "✅ Onboarding bypass enabled"
+    log_info "   Location: ~/.claude/.claude.json (user-level config)"
+    log_info "   Scope: Affects ALL Claude Code projects"
+    return 0
+}
+
 # P8: Backup system settings before launch (Defensive implementation)
 backup_system_settings() {
     if [[ ! -f "$CLAUDE_HOME/settings.json" ]]; then
@@ -704,6 +775,17 @@ check_dependencies() {
     else
         log_info "ℹ️  Docker Compose не найден (опционально)"
     fi
+
+    # P10: Check jq for onboarding bypass (optional)
+    if [[ "${CLAUDE_SKIP_ONBOARDING:-false}" == "true" ]]; then
+        if ! command -v jq &> /dev/null; then
+            log_warning "⚠️  jq требуется для обхода onboarding, но не найден"
+            log_info "   Продолжение без обхода onboarding..."
+            unset CLAUDE_SKIP_ONBOARDING
+        else
+            log_success "✅ jq найден (для onboarding bypass)"
+        fi
+    fi
 }
 
 # Ensure Docker image exists (build if necessary)
@@ -835,6 +917,14 @@ run_claude() {
     if ! inject_api_key_to_settings "$api_key"; then
         log_error "Failed to configure API key"
         exit 1
+    fi
+
+    # P10: Set onboarding bypass flag (if enabled)
+    if [[ "${CLAUDE_SKIP_ONBOARDING:-false}" == "true" ]]; then
+        if ! set_onboarding_flag; then
+            log_warning "⚠️  Failed to set onboarding bypass"
+            log_info "   Continuing anyway..."
+        fi
     fi
 
     # P8: Validate project GLM configuration

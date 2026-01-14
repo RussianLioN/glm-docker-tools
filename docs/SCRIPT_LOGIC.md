@@ -411,6 +411,88 @@ chmod 600 secrets/.env
 
 ---
 
+## 🚀 P10: Onboarding Bypass (NEW в v2.1)
+
+### 13. Обход Onboarding Экрана
+
+**Проблема**: Claude Code показывает экран onboarding при каждом запуске контейнера.
+
+**Решение**: Автоматическая установка флага `hasCompletedOnboarding: true` в `~/.claude/.claude.json`.
+
+**Функция**: `set_onboarding_flag()` (glm-launch.sh:492-557)
+
+**Алгоритм**:
+```
+┌─────────────────────────────────────────────────────────────┐
+│              ONBOARDING BYPASS WORKFLOW                      │
+└─────────────────────────────────────────────────────────────┘
+
+1. Check .claude.json exists
+   └─> Если не существует → skip (first run)
+
+2. Check if already set (idempotent)
+   └─> jq -e '.hasCompletedOnboarding == true'
+   └─> Если уже true → skip
+
+3. Create backup (defensive)
+   └─> cp ~/.claude/.claude.json ~/.claude/.claude.json.bak.$$
+
+4. Atomic write with jq
+   └─> jq '.hasCompletedOnboarding = true' > temp file
+
+5. Validate JSON
+   └─> jq empty temp_file
+
+6. Atomic move
+   └─> mv temp → ~/.claude/.claude.json
+
+7. Verify success
+   └─> jq -e '.hasCompletedOnboarding == true'
+   └─> Если failed → restore from backup
+```
+
+**Управление через переменную окружения**:
+```bash
+# Включить обход onboarding (в secrets/.env)
+CLAUDE_SKIP_ONBOARDING=true
+
+# Или через export
+export CLAUDE_SKIP_ONBOARDING=true
+./glm-launch.sh
+```
+
+**Интеграция с P6** (проверка зависимостей):
+```bash
+# check_dependencies() проверяет jq если CLAUDE_SKIP_ONBOARDING=true
+if [[ "${CLAUDE_SKIP_ONBOARDING:-false}" == "true" ]]; then
+    if ! command -v jq &> /dev/null; then
+        log_warning "jq требуется для обхода onboarding, но не найден"
+        unset CLAUDE_SKIP_ONBOARDING
+    fi
+fi
+```
+
+**Интеграция с run_claude()**:
+```bash
+# После inject_api_key_to_settings()
+if [[ "${CLAUDE_SKIP_ONBOARDING:-false}" == "true" ]]; then
+    if ! set_onboarding_flag; then
+        log_warning "Failed to set onboarding bypass"
+        log_info "Continuing anyway..."
+    fi
+fi
+```
+
+**Особенности**:
+- ✅ **Defensive**: Бэкап перед модификацией + откат при ошибке
+- ✅ **Idempotent**: Безопасно запускать многократно
+- ✅ **Graceful degradation**: Продолжает работу если jq недоступен
+- ✅ **Scope**: Аffects ALL Claude Code projects (user-level config)
+
+**Важно**: `hasCompletedOnboarding` находится в `~/.claude/.claude.json`, а не в `settings.json`. Это глобальная настройка пользователя, а не проектная.
+
+---
+
 ## 🔄 Последовательность Выполнения
 
 ### Полный Lifecycle Script
@@ -431,19 +513,24 @@ chmod 600 secrets/.env
    └─> Инъектирует ключ в ./.claude/settings.json
    └─> Создает template если отсутствует
 
-4. [P8] validate_glm_settings("./.claude/settings.json")
+4. [P10] set_onboarding_flag() (если CLAUDE_SKIP_ONBOARDING=true)
+   └─> Устанавливает hasCompletedOnboarding: true в ~/.claude/.claude.json
+   └─> Создает бэкап перед модификацией
+   └─> Graceful degradation при ошибке
+
+5. [P8] validate_glm_settings("./.claude/settings.json")
    └─> Проверяет GLM configuration (включая токен)
    └─> ❌ FAIL → exit 1
 
-5. [P8] backup_system_settings()
+6. [P8] backup_system_settings()
    └─> Бэкапит ~/.claude/settings.json
    └─> Persistent copy + rotation
 
-6. run_claude()
+7. run_claude()
    └─> Запускает Docker container
    └─> Claude Code использует ./.claude/settings.json (с инъектированным токеном)
 
-7. [P8] cleanup() / restore_system_settings()
+8. [P8] cleanup() / restore_system_settings()
    └─> Восстанавливает ~/.claude/settings.json
    └─> Бэкапит ./.claude/settings.json.dkrbkp (если auto-created)
 ```
@@ -508,11 +595,12 @@ cp ~/.claude/.backups/settings-20251230-120000.json ~/.claude/settings.json
 - `glm-launch.sh:169-202` - [P8] auto_create_project_settings()
 - `glm-launch.sh:205-311` - [P9] load_api_secret()
 - `glm-launch.sh:313-358` - [P9] inject_api_key_to_settings()
+- `glm-launch.sh:492-557` - [P10] set_onboarding_flag()
 - `glm-launch.sh:360-433` - [P8] backup_system_settings()
 - `glm-launch.sh:435-507` - [P8] restore_system_settings()
 - `.claude/settings.template.json` - template для GLM config
 - `secrets/.env` - API ключ (gitignored)
-- `secrets/.env.example` - template для секретов
+- `secrets/.env.example` - template для секретов + P10 config
 
 **Модификация логики**:
 1. Обновить код в `glm-launch.sh`
@@ -528,6 +616,7 @@ cp ~/.claude/.backups/settings-20251230-120000.json ~/.claude/settings.json
 - **[CLAUDE.md](../CLAUDE.md)** - Главная инструкция (ссылается на этот документ)
 - **[Secrets Management Guide](./SECRETS_MANAGEMENT.md)** - [P9] Полное руководство по управлению секретами
 - **[P9 UAT Plan](./uat/P9_secrets_management_uat.md)** - [P9] Testing procedures
+- **[P10 UAT Plan](./uat/P10_onboarding_bypass_uat.md)** - [P10] Testing procedures
 - **[P8 UAT Plan](./uat/P8_settings_isolation_uat.md)** - [P8] Testing procedures
 - **[Defensive Backup/Restore Plan](./DEFENSIVE_BACKUP_RESTORE_PLAN.md)** - [P8] Implementation details
 - **[Recovery Guide](./RECOVERY.md)** - Manual recovery procedures
