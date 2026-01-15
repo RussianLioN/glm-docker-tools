@@ -411,97 +411,103 @@ chmod 600 secrets/.env
 
 ---
 
-## 🚀 P10: Onboarding Bypass (NEW в v2.1)
+## 🚀 P10: Onboarding Bypass (RESEARCHED в v2.1)
 
-### 13. Обход Onboarding Экрана
+### 13. Исследование Обхода Onboarding
 
-**Проблема**: Claude Code показывает экран onboarding при каждом запуске контейнера.
+**⚠️ КРИТИЧЕСКИЙ ВЫВОД:** После комплексных исследований установлено, что **полный обход onboarding без авторизации на anthropic.com НЕВОЗМОЖЕН** по архитектурным причинам Claude Code.
 
-**Решение**: Автоматическая установка флага `hasCompletedOnboarding: true` в `~/.claude.json`.
+**📋 Полный отчет:** [P10 Onboarding Bypass Research](./P10_ONBOARDING_BYPASS_RESEARCH.md) - Результаты исследований, методология, рекомендации
 
-**Функция**: `set_onboarding_flag()` (glm-launch.sh:492-562)
+**Краткие выводы:**
 
-**Критически важно:** После исследования официальной документации и GitHub issues (#13827, #4714) установлено, что:
-- ✅ **Правильный файл:** `~/.claude.json` (официальный конфигурационный файл)
-- ⚠️ **Не тот файл:** `~/.claude/.claude.json` (бэкап/копия, созданная при операциях контейнера)
+| Аспект | Результат |
+|--------|-----------|
+| **Обход onboarding** | ❌ **Невозможен** - OAuth токен обязателен |
+| **`hasCompletedOnboarding: true`** | ⚠️ Недостаточно - нужен `oauthAccount` |
+| **Z.AI API** | ✅ Работает, но требует onboarding |
+| **Рекомендация** | ✅ Улучшить пользовательский процесс onboarding |
 
-**Источники:**
-- https://code.claude.com/docs/en/settings.md
-- https://github.com/anthropics/claude-code/issues/13827
-- https://github.com/anthropics/claude-code/issues/4714
+**Почему обход невозможен:**
 
-**Алгоритм**:
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│              ONBOARDING BYPASS WORKFLOW                      │
+│         АРХИТЕКТУРА АВТОРИЗАЦИИ CLAUDE CODE                  │
 └─────────────────────────────────────────────────────────────┘
 
-1. Check ~/.claude.json exists (ПРАВИЛЬНЫЙ ФАЙЛ!)
-   └─> Если не существует → skip (first run)
+1. Onboarding (ОБЯЗАТЕЛЬНЫЙ)
+   ├── Создает oauthAccount в ~/.claude.json
+   ├── Требует авторизации на claude.ai
+   └── Получает OAuth токен
 
-2. Check if already set (idempotent)
-   └─> jq -e '.hasCompletedOnboarding == true' ~/.claude.json
-   └─> Если уже true → skip
+2. Приоритет аутентификации
+   ├── Приоритет 1: OAuth токен (oauthAccount)
+   ├── Приоритет 2: ANTHROPIC_API_KEY
+   └── Приоритет 3: ANTHROPIC_AUTH_TOKEN (gateway)
 
-3. Create backup (defensive)
-   └─> cp ~/.claude.json ~/.claude.json.bak.$$
-
-4. Atomic write with jq
-   └─> jq '.hasCompletedOnboarding = true' ~/.claude.json > temp
-
-5. Validate JSON
-   └─> jq empty temp_file
-
-6. Atomic move
-   └─> mv temp → ~/.claude.json
-
-7. Verify success
-   └─> jq -e '.hasCompletedOnboarding == true' ~/.claude.json
-   └─> Если failed → restore from backup
+3. Z.AI использует стандартный onboarding
+   └── Создает OAuth аккаунт автоматически
 ```
 
-**Управление через переменную окружения**:
-```bash
-# Включить обход onboarding (в secrets/.env)
-CLAUDE_SKIP_ONBOARDING=true
+**Решение:** Улучшенный пользовательский процесс onboarding
 
-# Или через export
-export CLAUDE_SKIP_ONBOARDING=true
-./glm-launch.sh
+```bash
+# setup-claude-for-new-user.sh
+echo "🚀 Настройка Claude Code для Z.AI..."
+echo ""
+echo "⚠️  Claude Code требует ОДНОКРАТНОЙ авторизации на Anthropic."
+echo "✅ После авторизации:"
+echo "   • Z.AI API будет работать через api.z.ai"
+echo "   • Не нужно платить Anthropic (используется Z.AI ключ)"
 ```
 
-**Интеграция с P6** (проверка зависимостей):
+**Функция в glm-launch.sh:**
+
 ```bash
-# check_dependencies() проверяет jq если CLAUDE_SKIP_ONBOARDING=true
-if [[ "${CLAUDE_SKIP_ONBOARDING:-false}" == "true" ]]; then
-    if ! command -v jq &> /dev/null; then
-        log_warning "jq требуется для обхода onboarding, но не найден"
-        unset CLAUDE_SKIP_ONBOARDING
+setup_first_time_user() {
+    local claude_json="$HOME/.claude/.claude.json"
+
+    # Проверка: первый ли это запуск
+    if [[ ! -f "$claude_json" ]] || ! jq -e '.oauthAccount' "$claude_json" >/dev/null 2>&1; then
+        log_warning "═══════════════════════════════════════════════════════════════"
+        log_warning "⚠️  ПЕРВЫЙ ЗАПУСК CLAUDE CODE"
+        log_warning "═══════════════════════════════════════════════════════════════"
+        log_warning ""
+        log_warning "Claude Code требует ОДНОКРАТНОЙ авторизации на Anthropic."
+        log_warning "Это ОБЯЗАТЕЛЬНЫЙ шаг для работы Claude Code."
+        log_warning ""
+        log_warning "✅ После авторизации:"
+        log_warning "   • Z.AI API будет работать через api.z.ai"
+        log_warning "   • Не нужно платить Anthropic (используется Z.AI ключ)"
+        log_warning "   • Все запросы идут через Z.AI серверы"
+        log_warning ""
+        log_warning "❌ Без авторизации:"
+        log_warning "   • Claude Code не сможет работать"
+        log_warning "   • Обход onboarding технически невозможен"
+        log_warning ""
+        log_warning "═══════════════════════════════════════════════════════════════"
+        log_warning ""
+        log_info "В браузере откроется окно авторизации..."
+        sleep 3
+
+        return 0
     fi
-fi
+
+    log_success "✅ Claude Code уже авторизован"
+    return 0
+}
 ```
 
-**Интеграция с run_claude()**:
-```bash
-# После inject_api_key_to_settings()
-if [[ "${CLAUDE_SKIP_ONBOARDING:-false}" == "true" ]]; then
-    if ! set_onboarding_flag; then
-        log_warning "Failed to set onboarding bypass"
-        log_info "Continuing anyway..."
-    fi
-fi
-```
+**Связанные документы:**
+- 📋 [P10 Onboarding Bypass Research](./P10_ONBOARDING_BYPASS_RESEARCH.md) - Полный отчет об исследованиях
+- 🧪 [P10 Experimental Testing Plan](./EXPERIMENTAL_P10_TESTING_PLAN.md) - План систематического тестирования
+- 📋 [UAT Plan P10](./uat/P10_onboarding_bypass_uat.md) - План пользовательского тестирования
 
-**Особенности**:
-- ✅ **Defensive**: Бэкап перед модификацией + откат при ошибке
-- ✅ **Idempotent**: Безопасно запускать многократно
-- ✅ **Graceful degradation**: Продолжает работу если jq недоступен
-- ✅ **Scope**: Аffects ALL Claude Code projects (user-level config)
-
-**Критически важно:**
-- ✅ **Правильный файл:** `~/.claude.json` (домашняя директория)
-- ⚠️ **НЕ тот файл:** `~/.claude/.claude.json` (бэкап/копия)
-- 📚 **Доказательство:** Официальная документация + GitHub issues #13827, #4714
+**Источники:**
+- [Z.AI Claude Code Integration](https://docs.z.ai/scenario-example/develop-tools/claude)
+- [Claude Code LLM Gateway Configuration](https://code.claude.com/docs/en/llm-gateway)
+- [A developer's guide to settings.json in Claude Code](https://www.eesel.ai/en/blog/settings-json-claude-code)
+- [JSON Schema for settings.json](https://json.schemastore.org/claude-code-settings.json)
 
 ---
 

@@ -737,6 +737,15 @@ git commit -m "feat: update configuration"
 2. **Volume Mapping Identity**: Authorization persists with identical volume mappings
 3. **Three Critical Files**: `.credentials.json`, `.claude.json`, `settings.json`
 4. **Timezone Synchronization**: Fixed MSK/UTC timezone issues
+5. **P10 Onboarding Bypass**: ✅ **Исследовано** - Обход onboarding без авторизации на anthropic.com **невозможен**
+
+### Research Documents
+
+| Документ | Тема | Статус |
+|----------|------|--------|
+| [🔬 Authentication Research](./DOCKER_AUTHENTICATION_RESEARCH.md) | Анализ авторизации в Docker | ✅ Завершено |
+| [🚫 P10 Onboarding Bypass Research](./docs/P10_ONBOARDING_BYPASS_RESEARCH.md) | **NEW** - Исследования обхода onboarding | ✅ Завершено |
+| [🧪 P10 Experimental Testing Plan](./docs/EXPERIMENTAL_P10_TESTING_PLAN.md) | План систематического тестирования | ✅ Создан |
 
 ### Validation Status
 
@@ -746,6 +755,7 @@ git commit -m "feat: update configuration"
 | Volume Mapping | 95% | 🧪 Experiments planned |
 | Token Refresh | 90% | 📋 Documentation verified |
 | Session Isolation | 85% | 🧪 Framework ready |
+| **P10 Onboarding Bypass** | **95%+** | **❌ Impossible (architectural limitation)** |
 
 ## 📋 Project Status
 
@@ -756,9 +766,11 @@ git commit -m "feat: update configuration"
 - Security documentation and guidelines
 - Template configuration system
 - GitOps repository structure
+- **[P10 Onboarding Bypass Research](./docs/P10_ONBOARDING_BYPASS_RESEARCH.md)** - ✅ **Завершено** - Обход onboarding невозможен
 
 ### In Progress 🔄
 
+- P10: Улучшенный процесс onboarding (реализация рекомендации)
 - Practical validation experiments
 - Production deployment guides
 - Performance optimization
@@ -766,10 +778,14 @@ git commit -m "feat: update configuration"
 
 ### Next Session 🎯
 
-1. Execute practical experiments
-2. Validate research findings
-3. Complete production readiness
-4. Update documentation with results
+1. **P10:** Реализовать улучшенный процесс onboarding
+   - Создать скрипт `setup-claude-for-new-user.sh`
+   - Добавить функцию `setup_first_time_user()` в `glm-launch.sh`
+   - Обновить документацию с инструкциями
+2. Execute practical experiments
+3. Validate research findings
+4. Complete production readiness
+5. Update documentation with results
 
 ## 🤝 Contributing
 
