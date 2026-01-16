@@ -45,6 +45,23 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1" >&2
 }
 
+# =============================================================================
+# P12+B: Current-First Architecture - Find Project Root & Launcher Dir
+# =============================================================================
+
+# Find launcher directory (where glm-launch.sh is located)
+# This is the UTILITY location, NOT the project root
+find_launcher_dir() {
+    local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    echo "$script_dir"
+}
+
+# Find project root (CURRENT directory is ALWAYS the project)
+# This allows running glm from any directory and treating it as the project
+find_project_root() {
+    echo "$(pwd)"
+}
+
 # Cross-platform helper functions
 get_file_size() {
     local file="$1"
@@ -161,7 +178,9 @@ EOF
 
 # Конфигурация с умолчаниями
 CLAUDE_HOME="${CLAUDE_HOME:-$HOME/.claude}"
-WORKSPACE="${WORKSPACE:-$(pwd)}"
+WORKSPACE="${WORKSPACE:-$(pwd)}"  # Текущая рабочая директория пользователя
+PROJECT_ROOT=""  # P12+B: Будет вычислена в main() (текущая папка)
+GLM_LAUNCHER_DIR=""  # P12+B: Где лежит glm-launch.sh (утилита)
 IMAGE="${CLAUDE_IMAGE:-glm-docker-tools:latest}"
 SHOW_HELP=false
 DEBUG_MODE=false
@@ -249,25 +268,38 @@ validate_glm_settings() {
 
 # P8: Auto-create project settings.json if missing (silent operation)
 auto_create_project_settings() {
+    # P12+B: Use PROJECT_ROOT for current project
+    local claude_dir="$PROJECT_ROOT/.claude"
+    local settings_file="$claude_dir/settings.json"
+    local template_file=""
+
     # Check if project settings already exist
-    if [[ -f "./.claude/settings.json" ]]; then
+    if [[ -f "$settings_file" ]]; then
         return 0  # Already exists, nothing to do
     fi
 
     # Create .claude directory if needed
-    mkdir -p "./.claude"
+    mkdir -p "$claude_dir"
 
-    # Priority 1: Use project GLM template (ALWAYS trusted source for GLM)
-    if [[ -f "./.claude/settings.template.json" ]]; then
-        cp "./.claude/settings.template.json" "./.claude/settings.json"
-        chmod 600 "./.claude/settings.json"
+    # Priority 1: Use template from current directory
+    if [[ -f "$claude_dir/settings.template.json" ]]; then
+        template_file="$claude_dir/settings.template.json"
+    # Priority 2: Use template from launcher directory (glm-docker-tools)
+    elif [[ -f "$GLM_LAUNCHER_DIR/.claude/settings.template.json" ]]; then
+        template_file="$GLM_LAUNCHER_DIR/.claude/settings.template.json"
+    fi
+
+    # If template found, use it
+    if [[ -n "$template_file" ]]; then
+        cp "$template_file" "$settings_file"
+        chmod 600 "$settings_file"
         SETTINGS_AUTO_CREATED=true
         return 0
     fi
 
-    # Priority 2: Create minimal hardcoded GLM configuration
+    # Priority 3: Create minimal hardcoded GLM configuration
     # Note: Token placeholder - user must replace with actual GLM API key via P9
-    cat > "./.claude/settings.json" <<'EOF'
+    cat > "$settings_file" <<'EOF'
 {
   "ANTHROPIC_AUTH_TOKEN": "YOUR_GLM_API_KEY_HERE",
   "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
@@ -287,7 +319,7 @@ auto_create_project_settings() {
   "includeCoAuthoredBy": false
 }
 EOF
-    chmod 600 "./.claude/settings.json"
+    chmod 600 "$settings_file"
     SETTINGS_AUTO_CREATED=true
 
     echo "📝 Создан GLM конфигурационный файл из встроенного шаблона" >&2
@@ -309,16 +341,24 @@ load_api_secret() {
     fi
 
     # Priority 2: Secrets file
-    if [[ -z "$secret_value" && -f "secrets/.env" ]]; then
+    # P12+B: Priority - Current dir → Launcher dir
+    local secrets_file=""
+    if [[ -z "$secret_value" && -f "$PROJECT_ROOT/secrets/.env" ]]; then
+        secrets_file="$PROJECT_ROOT/secrets/.env"
+    elif [[ -z "$secret_value" && -f "$GLM_LAUNCHER_DIR/secrets/.env" ]]; then
+        secrets_file="$GLM_LAUNCHER_DIR/secrets/.env"
+    fi
+
+    if [[ -n "$secrets_file" ]]; then
         # Validate file permissions (warn if insecure) - output to stderr
         local perms
-        perms=$(stat -f%A "secrets/.env" 2>/dev/null || stat -c%a "secrets/.env" 2>/dev/null)
+        perms=$(stat -f%A "$secrets_file" 2>/dev/null || stat -c%a "$secrets_file" 2>/dev/null)
         if [[ "$perms" != "600" && "$perms" != "400" ]]; then
-            echo "⚠️  Insecure permissions on secrets/.env: $perms (should be 600)" >&2
+            echo "⚠️  Insecure permissions on $secrets_file: $perms (should be 600)" >&2
         fi
 
         # Extract GLM_API_KEY (explicit whitelist)
-        secret_value=$(grep -E "^GLM_API_KEY=" "secrets/.env" 2>/dev/null | cut -d'=' -f2- | head -1)
+        secret_value=$(grep -E "^GLM_API_KEY=" "$secrets_file" 2>/dev/null | cut -d'=' -f2- | head -1)
         # Remove surrounding quotes if present
         secret_value="${secret_value%\"}"
         secret_value="${secret_value#\"}"
@@ -327,7 +367,7 @@ load_api_secret() {
 
         # Fallback to ANTHROPIC_AUTH_TOKEN
         if [[ -z "$secret_value" ]]; then
-            secret_value=$(grep -E "^ANTHROPIC_AUTH_TOKEN=" "secrets/.env" 2>/dev/null | cut -d'=' -f2- | head -1)
+            secret_value=$(grep -E "^ANTHROPIC_AUTH_TOKEN=" "$secrets_file" 2>/dev/null | cut -d'=' -f2- | head -1)
             # Remove surrounding quotes if present
             secret_value="${secret_value%\"}"
             secret_value="${secret_value#\"}"
@@ -337,8 +377,16 @@ load_api_secret() {
     fi
 
     # Priority 3: Existing settings.json (backward compatibility)
-    if [[ -z "$secret_value" && -f "./.claude/settings.json" ]]; then
-        secret_value=$(jq -r '.ANTHROPIC_AUTH_TOKEN // empty' "./.claude/settings.json" 2>/dev/null)
+    # P12+B: Priority - Current dir → Launcher dir
+    if [[ -z "$secret_value" && -f "$PROJECT_ROOT/.claude/settings.json" ]]; then
+        secret_value=$(jq -r '.ANTHROPIC_AUTH_TOKEN // empty' "$PROJECT_ROOT/.claude/settings.json" 2>/dev/null)
+        if [[ -z "$secret_value" || "$secret_value" == "YOUR_GLM_API_KEY_HERE" ]]; then
+            secret_value=""
+        else
+            legacy_source=true  # Mark as loaded from legacy source
+        fi
+    elif [[ -z "$secret_value" && -f "$GLM_LAUNCHER_DIR/.claude/settings.json" ]]; then
+        secret_value=$(jq -r '.ANTHROPIC_AUTH_TOKEN // empty' "$GLM_LAUNCHER_DIR/.claude/settings.json" 2>/dev/null)
         if [[ -z "$secret_value" || "$secret_value" == "YOUR_GLM_API_KEY_HERE" ]]; then
             secret_value=""
         else
@@ -372,7 +420,15 @@ load_api_secret() {
 EOF
 
             # Check if setup-secrets.sh exists
-            if [[ ! -f "./setup-secrets.sh" ]]; then
+            # P12: Check in PROJECT_ROOT for workspace independence
+            local setup_script=""
+            if [[ -f "$PROJECT_ROOT/setup-secrets.sh" ]]; then
+                setup_script="$PROJECT_ROOT/setup-secrets.sh"
+            elif [[ -f "./setup-secrets.sh" ]]; then
+                setup_script="./setup-secrets.sh"
+            fi
+
+            if [[ -z "$setup_script" ]]; then
                 echo "❌ ERROR: setup-secrets.sh not found!" >&2
                 echo "" >&2
                 echo "   Please download it from the repository" >&2
@@ -380,7 +436,8 @@ EOF
             fi
 
             # Execute setup script (direct call, NOT exec - preserves shell context)
-            "./setup-secrets.sh"
+            # P12: Use full path from PROJECT_ROOT
+            "$setup_script"
             local exit_code=$?
 
             # Check if setup succeeded
@@ -409,13 +466,16 @@ EOF
             echo "✅ Setup completed! Reloading API key..." >&2
 
             # Try loading from secrets file again
-            if [[ -f "secrets/.env" ]]; then
+            # P12: Check PROJECT_ROOT first, then current directory
+            if [[ -f "$PROJECT_ROOT/secrets/.env" ]]; then
+                secret_value=$(grep -E "^GLM_API_KEY=" "$PROJECT_ROOT/secrets/.env" 2>/dev/null | cut -d'=' -f2- | head -1)
+            elif [[ -f "secrets/.env" ]]; then
                 secret_value=$(grep -E "^GLM_API_KEY=" "secrets/.env" 2>/dev/null | cut -d'=' -f2- | head -1)
-                secret_value="${secret_value%\"}"
-                secret_value="${secret_value#\"}"
-                secret_value="${secret_value%\'}"
-                secret_value="${secret_value#\'}"
             fi
+            secret_value="${secret_value%\"}"
+            secret_value="${secret_value#\"}"
+            secret_value="${secret_value%\'}"
+            secret_value="${secret_value#\'}"
 
             # Final verification
             if [[ -z "$secret_value" ]]; then
@@ -446,11 +506,12 @@ EOF
 # P9: Inject API key into settings.json from template
 inject_api_key_to_settings() {
     local api_key="$1"
-    local template="./.claude/settings.template.json"
-    local output="./.claude/settings.json"
+    # P12+B: Use PROJECT_ROOT for current project, fallback to launcher dir
+    local template=""
+    local output="$PROJECT_ROOT/.claude/settings.json"
 
     # Create .claude directory if needed
-    mkdir -p "./.claude"
+    mkdir -p "$PROJECT_ROOT/.claude"
 
     # Check if settings.json already exists with valid key
     if [[ -f "$output" ]]; then
@@ -462,13 +523,18 @@ inject_api_key_to_settings() {
         fi
     fi
 
-    # Check template exists
-    if [[ ! -f "$template" ]]; then
-        echo "❌ Template not found: $template" >&2
+    # Find template: Priority 1 - Current dir, Priority 2 - Launcher dir
+    if [[ -f "$PROJECT_ROOT/.claude/settings.template.json" ]]; then
+        template="$PROJECT_ROOT/.claude/settings.template.json"
+    elif [[ -f "$GLM_LAUNCHER_DIR/.claude/settings.template.json" ]]; then
+        template="$GLM_LAUNCHER_DIR/.claude/settings.template.json"
+        echo "📋 Using template from launcher directory" >&2
+    else
+        echo "❌ Template not found in current or launcher directory" >&2
         return 1
     fi
 
-    # Inject API key using jq (atomic operation) - inject in BOTH locations
+    # Inject API key using jq (atomic operation)
     if ! jq --arg token "$api_key" \
         '.ANTHROPIC_AUTH_TOKEN = $token | .env.ANTHROPIC_AUTH_TOKEN = $token' \
         "$template" > "$output.tmp" 2>/dev/null; then
@@ -933,7 +999,13 @@ run_claude() {
     fi
 
     # P8: Validate project GLM configuration
-    if [[ -f "./.claude/settings.json" ]]; then
+    # P12: Check PROJECT_ROOT first, then current directory
+    if [[ -f "$PROJECT_ROOT/.claude/settings.json" ]]; then
+        if ! validate_glm_settings "$PROJECT_ROOT/.claude/settings.json"; then
+            log_error "Project settings validation failed"
+            exit 1
+        fi
+    elif [[ -f "./.claude/settings.json" ]]; then
         if ! validate_glm_settings "./.claude/settings.json"; then
             log_error "Project settings validation failed"
             exit 1
@@ -974,10 +1046,11 @@ run_claude() {
     docker_cmd+=(
         --name "$CONTAINER_NAME"
         -v "$CLAUDE_HOME:/root/.claude"
-        -v "$WORKSPACE:/workspace"
-        -w /workspace
+        -v "$PROJECT_ROOT:$PROJECT_ROOT:cached"
+        -w "$PROJECT_ROOT"
         -e CLAUDE_CONFIG_DIR=/root/.claude
         -e CLAUDE_LAUNCH_MODE="$launch_mode"
+        -e GLM_LAUNCHER_DIR="$GLM_LAUNCHER_DIR"
     )
 
     # Показать команду если dry-run
@@ -995,7 +1068,8 @@ run_claude() {
     log_info "Запуск Claude Code..."
     log_info "CONTAINER_NAME: $CONTAINER_NAME"
     log_info "CLAUDE_HOME: $CLAUDE_HOME"
-    log_info "WORKSPACE: $WORKSPACE"
+    log_info "GLM_LAUNCHER_DIR: $GLM_LAUNCHER_DIR"
+    log_info "PROJECT_ROOT: $PROJECT_ROOT"
     log_info "IMAGE: $IMAGE"
 
     # Показать режим работы
@@ -1009,16 +1083,25 @@ run_claude() {
 
     # Проверка конфигурации перед запуском
     echo
-    # Check for project GLM settings (Claude Code will find these automatically at /workspace/.claude/)
-    if [[ -f "./.claude/settings.json" ]]; then
+    # Check for project GLM settings (Claude Code will find these automatically)
+    # P12+B: Priority 1 - Current directory, Priority 2 - Launcher directory
+    if [[ -f "$PROJECT_ROOT/.claude/settings.json" ]]; then
         log_success "🎯 Project GLM configuration detected"
-        log_info "  Location: ./.claude/settings.json"
-        log_info "  Container path: /workspace/.claude/settings.json"
+        log_info "  Location: $PROJECT_ROOT/.claude/settings.json"
+        log_info "  Container path: $PROJECT_ROOT/.claude/settings.json"
         echo "  GLM API Configuration:"
-        grep "ANTHROPIC_BASE_URL" "./.claude/settings.json" 2>/dev/null | sed 's/^/    /' || echo "    (unable to read)"
+        grep "ANTHROPIC_BASE_URL" "$PROJECT_ROOT/.claude/settings.json" 2>/dev/null | sed 's/^/    /' || echo "    (unable to read)"
         echo
         log_info "  ⚠️  Project settings will override user settings in ~/.claude/"
         log_info "  ✓ OAuth tokens and chat history remain shared"
+    elif [[ -f "$GLM_LAUNCHER_DIR/.claude/settings.json" ]]; then
+        log_success "🎯 GLM configuration detected (from launcher directory)"
+        log_info "  Location: $GLM_LAUNCHER_DIR/.claude/settings.json"
+        log_info "  Container path: $GLM_LAUNCHER_DIR/.claude/settings.json"
+        echo "  GLM API Configuration:"
+        grep "ANTHROPIC_BASE_URL" "$GLM_LAUNCHER_DIR/.claude/settings.json" 2>/dev/null | sed 's/^/    /' || echo "    (unable to read)"
+        echo
+        log_info "  ⚠️  Launcher settings will be used (create .claude/settings.json in current dir to override)"
     elif [[ -f "$CLAUDE_HOME/settings.json" ]]; then
         log_info "No project settings found (will use user settings from ~/.claude/)"
         log_info "  Create project config: ./scripts/setup-glm-config.sh"
@@ -1186,7 +1269,12 @@ fi
 
 # Основная логика
 main() {
-    log_info "Claude Code Launcher v1.1"
+    log_info "Claude Code Launcher v1.2 (Current-First Architecture)"
+
+    # P12+B: Separate launcher location from project root
+    GLM_LAUNCHER_DIR="$(find_launcher_dir)"  # Утилита (где лежит glm-launch.sh)
+    PROJECT_ROOT="$(find_project_root)"       # Проект (текущая папка)
+    WORKSPACE="$(pwd)"                        # Совпадает с PROJECT_ROOT
 
     # Set up signal handlers for cleanup
     trap cleanup SIGINT SIGTERM SIGQUIT ERR EXIT

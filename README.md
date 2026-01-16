@@ -687,6 +687,50 @@ services:
 - ✅ OAuth token isolation and management
 - ✅ Volume-based authentication boundaries
 
+## ⚠️ Known Limitations
+
+### Path Display in Container
+
+**Observation:** Paths in Claude Code UI display as full absolute paths:
+```
+/Users/username/coding/projects/test-project
+```
+
+Instead of the more compact:
+```
+~/coding/projects/test-project
+```
+
+**Reason:** Docker volume mapping requires absolute paths for reproducibility across CI/CD environments and different user accounts. The `~` expansion is a shell feature and not understood by Docker.
+
+**Impact:**
+- ✅ **Pro:** Works identically in all environments (local, CI/CD, multi-user)
+- ✅ **Pro:** Fully reproducible and predictable
+- ⚠️  **Con:** Less compact display in Claude Code UI
+
+**Status:** This is an intentional design choice prioritizing reproducibility over aesthetics. The functionality remains identical.
+
+### Shell Aliases Auto-Loading
+
+**Observation:** Aliases (`glm`, `glm-debug`, etc.) may not load automatically after installation.
+
+**Reason:** Shell detection depends on `$SHELL` environment variable. If you run setup script in a different shell than your login shell, aliases install to wrong location.
+
+**Fix:**
+```bash
+# Ensure correct shell detection
+echo $SHELL  # Should show your login shell (e.g., /bin/zsh)
+
+# Re-run installation
+cd ~/coding/projects/glm-docker-tools
+./scripts/setup-aliases.sh --install
+
+# Restart shell
+exec zsh  # or exec bash
+```
+
+**Prevention:** Setup script now checks `$SHELL` (login shell) instead of subprocess version variables.
+
 ## 🧪 Development
 
 ### Building the Image

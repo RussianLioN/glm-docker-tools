@@ -5,8 +5,8 @@
 **⚠️ СТАТУС**: 🔴 **ОБЯЗАТЕЛЬНОЕ ПРОЧТЕНИЕ КАЖДУЮ СЕССИЮ**
 
 **Создано**: 2025-12-30
-**Обновлено**: 2026-01-14
-**Версия**: 2.0
+**Обновлено**: 2026-01-16
+**Версия**: 2.1 (P12+B Current-First + P13 Shell Aliases)
 
 ---
 
@@ -508,6 +508,170 @@ setup_first_time_user() {
 - [Claude Code LLM Gateway Configuration](https://code.claude.com/docs/en/llm-gateway)
 - [A developer's guide to settings.json in Claude Code](https://www.eesel.ai/en/blog/settings-json-claude-code)
 - [JSON Schema for settings.json](https://json.schemastore.org/claude-code-settings.json)
+
+---
+
+## 📂 P12+B: Current-First Architecture (NEW в v1.2)
+
+**Создано**: 2026-01-16
+**Статус**: ✅ IMPLEMENTED
+**UAT**: [P12 Workspace Independence](./uat/P12_workspace_independence_uat.md)
+
+### Концепция
+
+**Current-First Architecture** — текущая директория ВСЕГДА является корнем проекта для Claude Code.
+
+**Ключевое изменение:**
+- **Раньше:** glm-docker-tools монтировался как `/workspace`
+- **Теперь:** Текущая папка монтируется как `/Users/.../current-project`
+
+### Переменные
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│              P12+B ARCHITECTURE VARIABLES                    │
+└─────────────────────────────────────────────────────────────┘
+
+PROJECT_ROOT        → $(pwd)                          # Текущая папка
+GLM_LAUNCHER_DIR    → Где лежит glm-launch.sh        # Утилита
+WORKSPACE           → $(pwd)                          # Совпадает с PROJECT_ROOT
+```
+
+### Volume Mapping
+
+```bash
+# P12+B: Один volume вместо двух
+-v "$PROJECT_ROOT:$PROJECT_ROOT:cached"  # Реальный путь!
+-w "$PROJECT_ROOT"                         # Working directory
+```
+
+**Результат:**
+- Контейнер видит: `/Users/username/coding/projects/test-project`
+- Claude Code memory: `/Users/username/coding/projects/test-project/CLAUDE.md`
+- Любая папка = отдельный проект
+
+### Priority Chain: Settings & Secrets
+
+```
+Priority 1: Current directory (PROJECT_ROOT/.claude/settings.json)
+Priority 2: Launcher directory (GLM_LAUNCHER_DIR/.claude/settings.json)
+Priority 3: Home directory (~/.claude/settings.json)
+```
+
+### Priority Chain: Template
+
+```
+Priority 1: Current directory template
+Priority 2: Launcher directory template (fallback)
+Priority 3: Hardcoded configuration
+```
+
+### Functions
+
+```bash
+# Найти утилиту (где glm-launch.sh)
+find_launcher_dir() {
+    echo "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+}
+
+# Найти проект (текущая папка)
+find_project_root() {
+    echo "$(pwd)"
+}
+```
+
+### Known Limitations
+
+**Path Display:**
+- Docker требует абсолютные пути
+- Показывается: `/Users/username/...` вместо `~/...`
+- Это intentional для reproducibility
+
+**Документация:** [README.md - Known Limitations](../README.md#-known-limitations)
+
+---
+
+## 🚀 P13: Shell Aliases (NEW в v1.2)
+
+**Создано**: 2026-01-16
+**Статус**: ✅ IMPLEMENTED
+**UAT**: [P13 Shell Aliases](./uat/P13_shell_aliases_uat.md)
+
+### Концепция
+
+**Shell Aliases** — запуск `glm` из любой папки на системе без монтирования glm-docker-tools как проекта.
+
+### Команды
+
+```bash
+glm              # Стандартный запуск (auto-delete)
+glm-debug        # Debug режим (persistent + shell)
+glm-no-del       # No-delete режим (persistent)
+glm-help         # Справка
+```
+
+### Architecture: Hybrid Fallback
+
+```
+Level 1: GLM_PROJECT_ROOT (env var) - highest priority
+Level 2: Hardcoded path from installation
+Level 3: Upward search (fallback)
+```
+
+### Files
+
+```
+scripts/glm-aliases.sh      # Shell functions
+scripts/setup-aliases.sh    # Auto-installation
+```
+
+### Installation
+
+```bash
+cd ~/coding/projects/glm-docker-tools
+./scripts/setup-aliases.sh --install
+
+# Auto-detects shell (zsh/bash) and installs to:
+# Zsh:  /usr/local/share/zsh/site-functions/glm
+# Bash: ~/.local/share/bash-completion/completions/glm
+```
+
+### Shell Detection
+
+```bash
+# P13: Uses $SHELL (login shell) instead of subprocess
+detect_shell() {
+    local user_shell="${SHELL:-}"
+    basename "$user_shell"  # zsh, bash, etc.
+}
+```
+
+### Integration с P12+B
+
+```bash
+# glm-aliases.sh находит glm-launch.sh
+_glm_find_project_root() {
+    # Level 2: Hardcoded installation path
+    local installed_path="__GLM_INSTALLED_PATH__"  # Replaced by setup
+
+    # Запускает glm-launch.sh из glm-docker-tools
+    "$installed_path/glm-launch.sh" "$@"
+}
+
+# glm-launch.sh использует CURRENT directory as project
+PROJECT_ROOT="$(pwd)"  # P12+B: Current-First
+```
+
+### Usage
+
+```bash
+# Работает из ЛЮБОЙ папки
+cd ~/coding/projects/random-project
+glm
+
+# PROJECT_ROOT = /Users/.../random-project
+# GLM_LAUNCHER_DIR = /Users/.../glm-docker-tools
+```
 
 ---
 
