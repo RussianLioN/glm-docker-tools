@@ -2085,6 +2085,457 @@ export CLAUDE_AUTO_UPDATE="${CLAUDE_AUTO_UPDATE:-true}"  # true/false
 
 ---
 
+### P16: Умное управление конфигурацией Claude Code ⭐ ВАЖНАЯ ВАЖНОСТЬ
+
+**Статус**: 📋 Запланировано
+**Экспертная оценка**: 9/13 экспертов проголосовали за приоритет ⭐ ВАЖНЫЙ
+
+#### 📝 Описание
+
+**Проблема**: Несоответствие путей к файлу конфигурации `.claude.json` между локальным и контейнерным запуском:
+
+- **Локальный запуск**: `~/.claude.json` (user-level config, оригинальный путь Claude Code)
+- **Контейнерный запуск**: `~/.claude/.claude.json` (текущий маппинг в скрипте)
+
+**Риски:**
+- Путаница при переключении между локальным и контейнерным запуском
+- Потеря настроек при миграции
+- Нарушение архитектуры конфигурации Claude Code
+
+**Ожидаемое поведение:**
+- ✅ Автообнаружение существующих конфигураций
+- ✅ Унификация маппинга для локального и контейнерного запуска
+- ✅ Валидация конфигурации (JSON синтаксис, обязательные ключи)
+- ✅ Автоматический backup перед миграцией (интеграция с P8)
+- ✅ Migration helper для старых конфигураций
+- ✅ User-friendly сообщения (UX transparency)
+
+#### 📂 Файлы для изменения
+1. **glm-launch.sh** - Добавить функции управления конфигурацией
+2. **scripts/claude-config.sh** (новый) - Менеджер конфигурации Claude Code
+3. **.claude/settings.json** - Project-level config (GitOps-managed)
+4. **docs/SCRIPT_LOGIC.md** - Документировать механизм
+
+#### 🔧 Реализация
+
+**Шаг 1**: Создать `scripts/claude-config.sh`:
+
+```bash
+#!/bin/bash
+# claude-config.sh - Менеджер конфигурации Claude Code
+
+# =============================================================================
+# КОНФИГУРАЦИЯ
+# =============================================================================
+
+# Возможные пути конфигурации (в приоритетном порядке)
+CLAUDE_CONFIG_PATHS=(
+    "$HOME/.claude.json"              # User-level (оригинальный, рекомендуемый)
+    "$HOME/.claude/.claude.json"      # Container-style (устаревший)
+    ".claude/settings.json"           # Project-level (GitOps)
+)
+
+# Стратегия выбора конфигурации
+CLAUDE_CONFIG_STRATEGY="${CLAUDE_CONFIG_STRATEGY:-auto}"  # auto | user | project
+
+# =============================================================================
+# ФУНКЦИИ ОБНАРУЖЕНИЯ
+# =============================================================================
+
+# Обнаружить конфигурацию (auto strategy)
+detect_claude_config() {
+    local strategy="${1:-$CLAUDE_CONFIG_STRATEGY}"
+
+    case "$strategy" in
+        user)
+            echo "$HOME/.claude.json"
+            return 0
+            ;;
+        project)
+            echo "$HOME/.claude/.claude.json"
+            return 0
+            ;;
+        auto|*)
+            # Priority: user-level → container-style → create new
+            for path in "${CLAUDE_CONFIG_PATHS[@]}"; do
+                if [[ -f "$path" ]]; then
+                    echo "$path"
+                    return 0
+                fi
+            done
+
+            # Default: создать user-level
+            echo "$HOME/.claude.json"
+            return 0
+            ;;
+    esac
+}
+
+# =============================================================================
+# ФУНКЦИИ ВАЛИДАЦИИ
+# =============================================================================
+
+# Валидация JSON (SRE health check)
+validate_claude_config_json() {
+    local config="$1"
+
+    if [[ ! -f "$config" ]]; then
+        echo "missing"
+        return 1
+    fi
+
+    if ! jq empty "$config" 2>/dev/null; then
+        echo "invalid_json"
+        return 1
+    fi
+
+    echo "valid"
+    return 0
+}
+
+# Проверка обязательных ключей
+validate_claude_config_keys() {
+    local config="$1"
+    local missing_keys=()
+
+    # Обязательные ключи (для Z.AI API)
+    local required_keys=(
+        "apiUrl"
+        # "model"  # опционально, имеет дефолт
+    )
+
+    for key in "${required_keys[@]}"; do
+        if ! jq -e ".${key}" "$config" >/dev/null 2>&1; then
+            missing_keys+=("$key")
+        fi
+    done
+
+    if [[ ${#missing_keys[@]} -gt 0 ]]; then
+        echo "missing:${missing_keys[@]}"
+        return 1
+    fi
+
+    echo "complete"
+    return 0
+}
+
+# =============================================================================
+# ФУНКЦИИ СОЗДАНИЯ
+# =============================================================================
+
+# Создать дефолтную конфигурацию
+create_default_claude_config() {
+    local target_path="$1"
+
+    if [[ -z "$target_path" ]]; then
+        target_path="$HOME/.claude.json"
+    fi
+
+    # Создать директорию если нужно
+    local target_dir="$(dirname "$target_path")"
+    mkdir -p "$target_dir"
+
+    # Дефолтная конфигурация для Z.AI API
+    cat > "$target_path" <<'EOF'
+{
+  "apiUrl": "https://api.z.ai/api/anthropic",
+  "defaultModel": "glm-4.6",
+  "haikuModel": "glm-4.5-air",
+  "enableExtendedThinking": true,
+  "externalEditor": "nano"
+}
+EOF
+
+    echo "$target_path"
+}
+
+# =============================================================================
+# ФУНКЦИИ МИГРАЦИИ
+# =============================================================================
+
+# Backup перед миграцией (P8 integration)
+backup_before_migration() {
+    local source="$1"
+
+    if [[ ! -f "$source" ]]; then
+        return 0
+    fi
+
+    local backup_dir=".claude/backups"
+    mkdir -p "$backup_dir"
+
+    local timestamp=$(date +%Y%m%d_%H%M%S)
+    local backup="$backup_dir/.claude.json.$timestamp.bak"
+
+    cp "$source" "$backup"
+    echo "$backup"
+}
+
+# Миграция старой конфигурации
+migrate_old_config() {
+    local old_path="$HOME/.claude/.claude.json"
+    local new_path="$HOME/.claude.json"
+
+    # Если старый конфиг существует, а новый нет
+    if [[ -f "$old_path" && ! -f "$new_path" ]]; then
+        echo "migration_needed:$old_path:$new_path"
+        return 0
+    fi
+
+    echo "no_migration_needed"
+    return 1
+}
+
+# =============================================================================
+# ФУНКЦИИ ИНФОРМИРОВАНИЯ
+# =============================================================================
+
+# Объяснить текущую конфигурацию (Prompt Engineer recommendation)
+explain_config_setup() {
+    local config="$1"
+    local container_path="/root/.claude.json"
+
+    cat <<EOF
+🔧 Claude Code Configuration:
+
+Config file (host):     $config
+Config file (container): $container_path
+
+💡 To customize:
+  export CLAUDE_CONFIG_STRATEGY=user|project|auto
+  export CLAUDE_CONFIG_PATH=/custom/path/.claude.json
+
+📚 Documentation: CLAUDE.md
+EOF
+}
+
+# Показать статус конфигурации
+show_config_status() {
+    local config="$1"
+
+    echo "📊 Configuration Status:"
+    echo "   File: $config"
+
+    local validation=$(validate_claude_config_json "$config")
+    echo "   JSON: $validation"
+
+    if [[ "$validation" == "valid" ]]; then
+        local keys=$(validate_claude_config_keys "$config")
+        echo "   Keys: $keys"
+    fi
+}
+```
+
+**Шаг 2**: Обновить `glm-launch.sh` - добавить обработку конфигурации:
+
+```bash
+# В начале скрипта, после определения переменных
+# =============================================================================
+# CLAUDE CODE CONFIGURATION MANAGEMENT (P16)
+# =============================================================================
+
+# Source конфиг менеджер если существует
+CLAUDE_CONFIG_MANAGER_SCRIPT="$(dirname "${BASH_SOURCE[0]}")/scripts/claude-config.sh"
+
+if [[ -f "$CLAUDE_CONFIG_MANAGER_SCRIPT" ]]; then
+    source "$CLAUDE_CONFIG_MANAGER_SCRIPT"
+
+    # Обнаружить конфигурацию
+    CLAUDE_HOST_CONFIG="$(detect_claude_config)"
+
+    # Валидация
+    local validation=$(validate_claude_config_json "$CLAUDE_HOST_CONFIG")
+    if [[ "$validation" != "valid" ]]; then
+        log_warning "⚠️ Config validation failed: $validation"
+
+        if [[ "$validation" == "missing" ]]; then
+            log_info "🔧 Creating default config..."
+            CLAUDE_HOST_CONFIG="$(create_default_claude_config)"
+            log_success "✅ Created: $CLAUDE_HOST_CONFIG"
+        elif [[ "$validation" == "invalid_json" ]]; then
+            log_error "❌ Invalid JSON in config. Please fix manually."
+            exit 1
+        fi
+    fi
+
+    # Проверка миграции
+    local migration_status=$(migrate_old_config)
+    if [[ "$migration_status" == migration_needed:* ]]; then
+        local old_path=$(echo "$migration_status" | cut -d: -f2)
+        local new_path=$(echo "$migration_status" | cut -d: -f3)
+
+        log_warning "⚠️ Old config path detected: $old_path"
+        echo ""
+        echo "A new standard path is recommended: $new_path"
+        echo ""
+        read -p "Migrate to new path? (y/n): " -n 1 -r
+        echo
+
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            local backup=$(backup_before_migration "$old_path")
+            log_info "💾 Backup created: $backup"
+
+            cp "$old_path" "$new_path"
+            CLAUDE_HOST_CONFIG="$new_path"
+            log_success "✅ Migration complete"
+        else
+            log_info "📝 Using old config path: $old_path"
+            CLAUDE_HOST_CONFIG="$old_path"
+        fi
+    fi
+
+    # Показать статус (если verbose)
+    if [[ "${VERBOSE:-false}" == "true" ]]; then
+        show_config_status "$CLAUDE_HOST_CONFIG"
+        echo ""
+    fi
+else
+    # Fallback если скрипт не найден
+    CLAUDE_HOST_CONFIG="${CLAUDE_CONFIG_PATH:-$HOME/.claude.json}"
+fi
+
+export CLAUDE_HOST_CONFIG
+
+# =============================================================================
+# VOLUME MAPPING UPDATE
+# =============================================================================
+
+# Обновить volume mapping для использования обнаруженной конфигурации
+# Заменить hardcoded путь на переменную
+```
+
+**Шаг 3**: Обновить volume mapping в `run_docker()`:
+
+```bash
+# Было (hardcoded):
+# -v "$HOME/.claude/.claude.json:/root/.claude.json"
+
+# Стало (динамическое):
+# -v "$CLAUDE_HOST_CONFIG:/root/.claude.json"
+
+# В функции run_docker():
+run_docker() {
+    # ...
+
+    DOCKER_RUN=(
+        docker run --rm -it $DOCKER_INTERACTIVE
+            -v "$CLAUDE_HOST_CONFIG:/root/.claude.json"  # Динамический маппинг
+            # ... другие volumes
+            "$IMAGE" "$@"
+    )
+
+    # ...
+}
+```
+
+**Шаг 4**: Добавить команды управления:
+
+```bash
+case "$1" in
+    --config-status)
+        source scripts/claude-config.sh
+        CLAUDE_HOST_CONFIG="$(detect_claude_config)"
+        show_config_status "$CLAUDE_HOST_CONFIG"
+        exit 0
+        ;;
+    --config-migrate)
+        source scripts/claude-config.sh
+        local old_path="$HOME/.claude/.claude.json"
+        local new_path="$HOME/.claude.json"
+
+        if [[ -f "$old_path" ]]; then
+            local backup=$(backup_before_migration "$old_path")
+            cp "$old_path" "$new_path"
+            log_success "✅ Migrated: $old_path → $new_path"
+            log_info "💾 Backup: $backup"
+        else
+            log_info "📝 No old config found"
+        fi
+        exit 0
+        ;;
+esac
+```
+
+#### ✅ Критерии тестирования
+
+1. **Тест 1: Автообнаружение user-level конфига**
+   ```bash
+   # Setup: Создать ~/.claude.json
+   echo '{"test": true}' > ~/.claude.json
+
+   ./glm-launch.sh --config-status
+   # Ожидается: Config file: ~/.claude.json
+   ```
+
+2. **Тест 2: Fallback на container-style**
+   ```bash
+   # Setup: Удалить user-level, оставить container-style
+   rm -f ~/.claude.json
+
+   ./glm-launch.sh --config-status
+   # Ожидается: Config file: ~/.claude/.claude.json
+   ```
+
+3. **Тест 3: Создание дефолтной конфигурации**
+   ```bash
+   # Setup: Удалить все конфиги
+   rm -f ~/.claude.json ~/.claude/.claude.json
+
+   ./glm-launch.sh
+   # Ожидается: Создан ~/.claude.json с дефолтными значениями
+   ```
+
+4. **Тест 4: Миграция старой конфигурации**
+   ```bash
+   # Setup: Создать старую конфигурацию
+   mkdir -p ~/.claude
+   echo '{"old": true}' > ~/.claude/.claude.json
+
+   ./glm-launch.sh --config-migrate
+   # Ожидается:
+   # - Backup создан
+   # - ~/.claude.json создан
+   # - Settings migrated
+   ```
+
+5. **Тест 5: Валидация JSON**
+   ```bash
+   # Setup: Создать невалидный JSON
+   echo '{invalid json}' > ~/.claude.json
+
+   ./glm-launch.sh
+   # Ожидается: Error с сообщением о невалидном JSON
+   ```
+
+#### 📊 Критерии успеха
+- ✅ Автообнаружение существующих конфигураций
+- ✅ Валидация JSON (синтаксис + ключи)
+- ✅ Автоматическое создание дефолтной конфигурации
+- ✅ Migration helper с backup (P8 integration)
+- ✅ User-friendly сообщения (UX transparency)
+- ✅ Команды `--config-status` и `--config-migrate`
+- ✅ Обратная совместимость
+- ✅ Поддержка переменной `CLAUDE_CONFIG_STRATEGY`
+
+#### 🔗 Связь с другими задачами
+
+- **P8 (Backup)**: Интеграция с defensive backup/restore
+  - `backup_before_migration()` использует P8 механизм
+- **P9 (Secrets)**: `CLAUDE_CONFIG_STRATEGY` в .env
+- **P10 (Onboarding)**: Упрощение первого запуска
+- **P12 (Workspace)**: Независимая задача
+
+**Экспертная оценка**: 9/13 экспертов рекомендуют приоритет **⭐ ВАЖНЫЙ**
+
+**Ключевые эксперты**:
+- Архитектор решения: "Архитектурная целостность критична"
+- SRE: "Надежность конфигурации - SLO для production"
+- GitOps Specialist: "Configuration as Code - фундаментальный принцип"
+
+**Приоритет**: ⭐ **ВАЖНЫЙ** - унификация конфигурации важна для надежности
+
+---
+
 ## 📊 ИТОГОВЫЙ СТАТУС ПЛАНА
 
 **План создан**: 2025-12-25
@@ -2101,9 +2552,10 @@ export CLAUDE_AUTO_UPDATE="${CLAUDE_AUTO_UPDATE:-true}"  # true/false
 4. **P12 (Workspace)**: ⚠️ **КРИТИЧЕСКИЙ** - Запуск из любой папки + маппинг текущей директории
 5. **P13 (Aliases)**: ⭐ **ВАЖНЫЙ** - Shell-функции для удобного запуска (glm, glm-debug)
 6. **P14 (Apps)**: ⭐ **ВАЖНЫЙ** - Управление приложениями в контейнере + автообновление образа
-7. **P15 (Auto-update)**: 📋 **НОРМАЛЬНЫЙ** - Автообновление Claude Code
-8. **P11 (Онбординг)**: 📋 НОРМАЛЬНЫЙ - Улучшение UX процесса onboarding
-9. **P8-P9**: ✅ ЗАВЕРШЕНО - Defensive improvements
+7. **P16 (Config)**: ⭐ **ВАЖНЫЙ** - Умное управление конфигурацией (.claude.json mapping)
+8. **P15 (Auto-update)**: 📋 **НОРМАЛЬНЫЙ** - Автообновление Claude Code
+9. **P11 (Онбординг)**: 📋 НОРМАЛЬНЫЙ - Улучшение UX процесса onboarding
+10. **P8-P9**: ✅ ЗАВЕРШЕНО - Defensive improvements
 
 **🎊 ДОСТИЖЕНИЯ:**
 - ✅ 100% Completion Rate (7/7 features)
