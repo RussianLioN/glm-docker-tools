@@ -2923,6 +2923,497 @@ esac
 
 ---
 
+### P17: Мульти-engine Docker автозапуск 📋 НОРМАЛЬНАЯ ВАЖНОСТЬ
+
+**Статус**: 📋 Запланировано
+**Экспертная оценка**: Консилиум 7 экспертов (см. [P17_EXPERT_CONSILIUM.md](./P17_EXPERT_CONSILIUM.md))
+
+#### 📝 Описание
+
+**Проблема:** Скрипт `glm-launch.sh` проверяет Docker daemon и завершается с ошибкой, если daemon не запущен:
+
+```bash
+[ERROR] ❌ Docker daemon не запущен. Запустите Docker Desktop.
+```
+
+**Ключевой вопрос пользователя:** "Для чего нужен Desktop? Разве не достаточно запуска через CLI?"
+
+**Результат консилиума экспертов:**
+> **❌ НЕТ**, Docker Desktop **НЕ является обязательным** для запуска Docker контейнеров на macOS.
+
+**macOS специфика:**
+- Docker daemon требует Linux kernel (containers are Linux)
+- Docker Desktop предоставляет Linux VM (HyperKit/QEMU)
+- **НО существуют альтернативы:**
+
+#### 📂 Docker engines на macOS (в приоритетном порядке)
+
+| Engine | RAM Idle | Запуск | CLI-first | Установка | Рейтинг |
+|--------|----------|--------|-----------|-----------|--------|
+| **OrbStack** | ~200MB | 2-3 сек | ✅ | GUI/Brew | ⭐⭐⭐⭐⭐ |
+| **Colima** | ~500MB | 5-8 сек | ✅ | Brew | ⭐⭐⭐⭐☆ |
+| **Docker Desktop** | ~2GB | 15-20 сек | ❌ | GUI | ⭐⭐⭐☆☆ |
+
+**Вывод экспертов:** OrbStack предоставляет **10x улучшение** времени запуска по сравнению с Docker Desktop.
+
+#### 📂 Файлы для изменения
+1. **glm-launch.sh** - Обновить функцию `check_dependencies()`
+2. **scripts/docker-helper.sh** (новый) - Менеджер Docker engines
+3. **docs/SCRIPT_LOGIC.md** - Документировать механизм
+4. **docs/P17_EXPERT_CONSILIUM.md** - Консилиум экспертов (создан)
+
+#### 🔧 Реализация (на основе консилиума экспертов)
+
+**Шаг 1**: Создать `scripts/docker-helper.sh`:
+
+```bash
+#!/bin/bash
+# docker-helper.sh - Менеджер Docker engines (multi-engine support)
+
+# =============================================================================
+# КОНСТАНТЫ
+# =============================================================================
+
+DOCKER_SOCKET="/var/run/docker.sock"
+MAX_STARTUP_WAIT=30  # секунд
+
+# Docker engines (в приоритетном порядке)
+declare -A DOCKER_ENGINES=(
+    [orbstack]="OrbStack"
+    [colima]="Colima"
+    [docker-desktop]="Docker Desktop"
+)
+
+# =============================================================================
+# КОНСТАНТЫ ДЛЯ КАЖДОГО ENGINE
+# =============================================================================
+
+# OrbStack
+ORBSTACK_PATH="/Applications/OrbStack.app"
+ORBSTACK_CLI="orb"
+
+# Colima
+COLIMA_CLI="colima"
+
+# Docker Desktop
+DOCKER_DESKTOP_PATH="/Applications/Docker.app"
+
+# =============================================================================
+# ПРОВЕРКА СТАТУСА DOCKER
+# =============================================================================
+
+# Проверить готовность Docker daemon
+is_docker_ready() {
+    # Быстрая проверка: socket существует?
+    if [[ ! -S "$DOCKER_SOCKET" ]]; then
+        return 1
+    fi
+
+    # Надежная проверка: daemon отвечает?
+    if docker info >/dev/null 2>&1; then
+        return 0
+    fi
+
+    return 1
+}
+
+# =============================================================================
+# ОБНАРУЖЕНИЕ DOCKER ENGINE
+# =============================================================================
+
+# Обнаружить доступные Docker engines
+detect_docker_engines() {
+    local available=()
+
+    # 1. OrbStack (рекомендуется экспертами - самый быстрый)
+    if [[ -d "$ORBSTACK_PATH" ]] || command -v "$ORBSTACK_CLI" >/dev/null 2>&1; then
+        available+=("orbstack")
+    fi
+
+    # 2. Colima (CLI-first, open source)
+    if command -v "$COLIMA_CLI" >/dev/null 2>&1; then
+        available+=("colima")
+    fi
+
+    # 3. Docker Desktop (fallback, тяжелый)
+    if [[ -d "$DOCKER_DESKTOP_PATH" ]]; then
+        available+=("docker-desktop")
+    fi
+
+    echo "${available[@]}"
+}
+
+# Проверить запущен ли конкретный engine
+is_engine_running() {
+    local engine="$1"
+
+    case "$engine" in
+        orbstack)
+            # OrbStack работает если docker готов
+            is_docker_ready
+            ;;
+        colima)
+            # Colima имеет статус
+            if command -v colima >/dev/null 2>&1; then
+                colima status >/dev/null 2>&1
+            else
+                return 1
+            fi
+            ;;
+        docker-desktop)
+            # Проверка процесса Docker
+            pgrep -x "Docker" >/dev/null 2>&1
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+# =============================================================================
+# ЗАПУСК DOCKER ENGINE
+# =============================================================================
+
+# Запустить конкретный engine
+start_docker_engine() {
+    local engine="$1"
+
+    case "$engine" in
+        orbstack)
+            if command -v orb >/dev/null 2>&1; then
+                orb start >/dev/null 2>&1
+            else
+                open -a "OrbStack"
+            fi
+            ;;
+        colima)
+            colima start >/dev/null 2>&1
+            ;;
+        docker-desktop)
+            open -a Docker
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+# Получить имя engine для отображения
+get_engine_name() {
+    case "$1" in
+        orbstack) echo "OrbStack" ;;
+        colima) echo "Colima" ;;
+        docker-desktop) echo "Docker Desktop" ;;
+        *) echo "$1" ;;
+    esac
+}
+
+# =============================================================================
+# ОЖИДАНИЕ ГОТОВНОСТИ DOCKER DAEMON
+# =============================================================================
+
+# Ожидание готовности daemon с прогресс-индикатором
+wait_for_docker_daemon() {
+    local max_attempts="${1:-$MAX_STARTUP_WAIT}"
+    local attempt=0
+    local quiet="${2:-false}"
+
+    while [[ $attempt -lt $max_attempts ]]; do
+        if is_docker_ready; then
+            return 0  # Готов!
+        fi
+
+        # Показываем прогресс (каждую секунду)
+        if [[ "$quiet" != "true" ]]; then
+            if [[ $((attempt % 3)) -eq 0 ]]; then
+                echo -n "."
+            fi
+        fi
+
+        sleep 1
+        ((attempt++))
+    done
+
+    return 1  # Таймаут
+}
+
+# =============================================================================
+# ГЛАВНАЯ ФУНКЦИЯ
+# =============================================================================
+
+# Обеспечить запуск Docker (поддержка множественных engines)
+ensure_docker_running() {
+    local preferred_engine="${P17_DOCKER_ENGINE:-auto}"
+    local auto_start="${1:-true}"
+
+    # Проверка 1: Docker уже готов?
+    if is_docker_ready; then
+        return 0
+    fi
+
+    # Проверка 2: Обнаружить доступные engines
+    local available_engines=($(detect_docker_engines))
+
+    if [[ ${#available_engines[@]} -eq 0 ]]; then
+        echo "error:Docker engine не установлен"
+        echo "install:Установите OrbStack, Colima или Docker Desktop:"
+        echo "  - OrbStack: https://orbstack.dev (рекомендуется экспертами)"
+        echo "  - Colima:   brew install colima (CLI-first)"
+        echo "  - Docker:   https://www.docker.com/products/docker-desktop"
+        return 1
+    fi
+
+    # Проверка 3: Использовать предпочтительный engine?
+    if [[ "$preferred_engine" != "auto" ]]; then
+        if [[ " ${available_engines[@]} " =~ " ${preferred_engine} " ]]; then
+            if ! is_engine_running "$preferred_engine"; then
+                if [[ "$auto_start" == "true" ]]; then
+                    echo "starting:$preferred_engine"
+                    return 0
+                else
+                    echo "not_running:$preferred_engine"
+                    return 2
+                fi
+            else
+                return 0  # Уже работает
+            fi
+        else
+            echo "error:Предпочитаемый engine '$preferred_engine' не найден"
+            return 1
+        fi
+    fi
+
+    # Проверка 4: Автоматический выбор engine
+    if [[ "$auto_start" == "true" ]]; then
+        echo "not_running:$(get_engine_name ${available_engines[0]})"
+        return 2
+    else
+        echo "error:Docker engine не запущен. Доступные: ${available_engines[*]}"
+        return 1
+    fi
+}
+```
+
+**Шаг 2**: Обновить `glm-launch.sh` - интерактивный выбор engine:
+
+```bash
+check_dependencies() {
+    log_info "🔍 Проверка зависимостей..."
+
+    if [[ -f "scripts/docker-helper.sh" ]]; then
+        source scripts/docker-helper.sh
+
+        # Проверка готовности
+        if is_docker_ready; then
+            log_success "✅ Docker готов"
+            return 0
+        fi
+
+        # Обнаружение доступных engines
+        local available=($(detect_docker_engines))
+
+        if [[ ${#available[@]} -eq 0 ]]; then
+            log_error "❌ Docker engine не установлен"
+            log_info "📥 Рекомендуется OrbStack: https://orbstack.dev"
+            echo ""
+            echo "Альтернативы:"
+            echo "  - Colima:   brew install colima"
+            echo "  - Docker:   https://www.docker.com/products/docker-desktop"
+            exit 1
+        fi
+
+        # Если несколько engines - спросить пользователя
+        local selected_engine=""
+        if [[ ${#available[@]} -gt 1 ]]; then
+            log_warning "⚠️ Обнаружено несколько Docker engines:"
+            echo ""
+
+            local i=1
+            for engine in "${available[@]}"; do
+                local name=$(get_engine_name "$engine")
+                local status=""
+                local recommended=""
+                [[ "$engine" == "orbstack" ]] && recommended=" [рекомендуется экспертами]"
+
+                if is_engine_running "$engine"; then
+                    status=" [запущен, но daemon не готов]"
+                fi
+
+                echo "  [$i] $name$status $recommended"
+                ((i++))
+            done
+
+            echo ""
+            read -p "Выберите Docker engine [1]: " -r
+            echo
+
+            local choice="${REPLY:-1}"
+            if [[ "$choice" =~ ^[0-9]+$ ]] && [[ $choice -ge 1 ]] && [[ $choice -le ${#available[@]} ]]; then
+                selected_engine="${available[$((choice-1))]}"
+            else
+                log_info "📝 Используется engine по умолчанию: ${available[0]}"
+                selected_engine="${available[0]}"
+            fi
+        else
+            selected_engine="${available[0]}"
+        fi
+
+        local engine_name=$(get_engine_name "$selected_engine")
+
+        # Запуск
+        log_info "🚀 Запуск $engine_name..."
+        start_docker_engine "$selected_engine" >/dev/null
+
+        log_info "⏳ Ожидание запуска daemon (OrbStack: 2-3 сек, Colima: 5-8 сек)"
+        echo -n "   "
+
+        if wait_for_docker_daemon 30 "false"; then
+            echo ""
+            log_success "✅ Docker готов ($engine_name)"
+        else
+            echo ""
+            log_error "❌ Не удалось запустить $engine_name"
+            exit 1
+        fi
+    else
+        # Fallback если скрипт не найден (старое поведение)
+        if ! command -v docker >/dev/null 2>&1; then
+            log_error "❌ Docker не установлен"
+            exit 1
+        fi
+
+        if ! docker info >/dev/null 2>&1; then
+            log_error "❌ Docker daemon не запущен"
+            exit 1
+        fi
+    fi
+
+    log_success "✅ Все зависимости доступны"
+}
+```
+
+**Шаг 3**: Добавить команды для управления:
+
+```bash
+case "$1" in
+    --docker-status)
+        source scripts/docker-helper.sh
+        echo "📊 Статус Docker engines:"
+        echo ""
+
+        if is_docker_ready; then
+            echo "✅ Docker daemon готов"
+            echo ""
+            docker info | head -5
+        else
+            echo "❌ Docker daemon не готов"
+            echo ""
+
+            local available=($(detect_docker_engines))
+            if [[ ${#available[@]} -gt 0 ]]; then
+                echo "Доступные engines:"
+                for engine in "${available[@]}"; do
+                    local name=$(get_engine_name "$engine")
+                    local status="⏸️  Не запущен"
+                    if is_engine_running "$engine"; then
+                        status="⏳ Запускается..."
+                    fi
+                    echo "  - $name: $status"
+                done
+            fi
+        fi
+        exit 0
+        ;;
+    --docker-engines)
+        source scripts/docker-helper.sh
+        echo "🔍 Доступные Docker engines:"
+        echo ""
+
+        local available=($(detect_docker_engines))
+        if [[ ${#available[@]} -eq 0 ]]; then
+            echo "  ❌ Не найдено ни одного engine"
+            echo ""
+            echo "Рекомендуемая установка:"
+            echo "  1. OrbStack: https://orbstack.dev (быстрый, легкий) ⭐ РЕКОМЕНДУЕТСЯ"
+            echo "  2. Colima:   brew install colima (CLI-first)"
+            echo "  3. Docker:   https://www.docker.com/products/docker-desktop"
+        else
+            for engine in "${available[@]}"; do
+                local name=$(get_engine_name "$engine")
+                local status="✅ Доступен"
+                if is_engine_running "$engine"; then
+                    status="✅ Запущен"
+                fi
+                local recommended=""
+                [[ "$engine" == "orbstack" ]] && recommended=" ⭐"
+
+                echo "  - $name: $status$recommended"
+            done
+        fi
+        exit 0
+        ;;
+esac
+```
+
+#### ✅ Критерии тестирования
+
+1. **Тест 1: Автоматический выбор OrbStack**
+   ```bash
+   # OrbStack установлен, но не запущен
+   ./glm-launch.sh
+   # Ожидается: Автоматический запуск OrbStack (2-3 сек)
+   ```
+
+2. **Тест 2: Интерактивный выбор при нескольких engines**
+   ```bash
+   # OrbStack + Docker Desktop установлены
+   ./glm-launch.sh
+   # Ожидается: Меню выбора engine
+   # Выбор по умолчанию: OrbStack
+   ```
+
+3. **Тест 3: Принудительный выбор engine**
+   ```bash
+   P17_DOCKER_ENGINE=colima ./glm-launch.sh
+   # Ожидается: Использование Colima
+   ```
+
+4. **Тест 4: Команда --docker-engines**
+   ```bash
+   ./glm-launch.sh --docker-engines
+   # Ожидается: Список доступных engines с рекомендациями
+   ```
+
+#### 📊 Критерии успеха
+- ✅ Поддержка множественных Docker engines (OrbStack, Colima, Docker Desktop)
+- ✅ Приоритет на основе консилиума: OrbStack > Colima > Docker Desktop
+- ✅ Интерактивный выбор при нескольких engine
+- ✅ Переменная `P17_DOCKER_ENGINE` для явного указания
+- ✅ Команды `--docker-status` и `--docker-engines`
+- ✅ Кроссплатформенность (macOS, Linux)
+- ✅ Fallback на старое поведение
+- ✅ Рекомендации по установке OrbStack/Colima
+
+#### 🔗 Связь с другими задачами
+
+- **P6 (Pre-flight Checks)**: Расширение P6
+  - P6: Базовая проверка зависимостей
+  - P17: Мульти-engine автозапуск
+- **P11 (Onboarding)**: Упрощение первого запуска + рекомендации OrbStack
+- **P12 (Workspace)**: Синергия для быстрого запуска из любой папки
+
+**Экспертная оценка:**
+- 7 экспертов единогласно рекомендуют поддержку альтернатив
+- OrbStack рекомендуется как самый быстрый (10x улучшение)
+- P17 должен поддерживать множественные engines, не только Docker Desktop
+
+**Приоритет**: 📋 **НОРМАЛЬНЫЙ** - улучшение UX, не критично
+
+**Примечание:**
+Подробный консилиум экспертов: [P17_EXPERT_CONSILIUM.md](./P17_EXPERT_CONSILIUM.md)
+
+---
+
 ## 📊 ИТОГОВЫЙ СТАТУС ПЛАНА
 
 **План создан**: 2025-12-25
