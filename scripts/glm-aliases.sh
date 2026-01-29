@@ -5,12 +5,12 @@
 #
 # P13: Shell-aliases for universal Claude Code access
 # Expert panel: 13/13 unanimous approval
-# Architecture: Hybrid Fallback (3-level priority chain)
+# Architecture: Auto-detection via BASH_SOURCE/zsh %x (works from any directory)
 
 # =============================================================================
-# P13 Core Function: Find Project Root (HYBRID FALLBACK)
-# Purpose: Find glm-docker-tools project with 3-level fallback
-# Priority: 1. GLM_PROJECT_ROOT (env var) -> 2. GLM_INSTALLED_PATH (hardcoded) -> 3. Search upward
+# P13 Core Function: Find Project Root (AUTO-DETECTION)
+# Purpose: Find glm-docker-tools project automatically
+# Priority: 1. GLM_PROJECT_ROOT (env var) -> 2. Script location -> 3. Search upward
 # Returns: Project root path or empty string if not found
 # =============================================================================
 _glm_find_project_root() {
@@ -33,23 +33,35 @@ _glm_find_project_root() {
     fi
 
     # =============================================================================
-    # Level 2: Hardcoded Installation Path (Medium Priority)
-    # Purpose: Use path captured during installation (reliable default)
-    # Note: setup-aliases.sh replaces %%PROJECT_ROOT%% with actual path
+    # Level 2: Script Location (Auto-detection from file path)
+    # Purpose: Use the location of this script (glm-aliases.sh) to find project root
+    # This works because glm-aliases.sh is in scripts/ subdirectory of project
+    # Supports both bash (${BASH_SOURCE[0]}) and zsh (${(%):-%x})
     # =============================================================================
-    local installed_path="__GLM_INSTALLED_PATH__"
+    local script_dir=""
 
-    # Check if placeholder has been replaced (not equal to literal string)
-    if [[ "$installed_path" != "__GLM_INSTALLED_PATH__" ]]; then
-        # Validate the path still exists and contains glm-launch.sh
-        if [[ -d "$installed_path" ]] && \
-           [[ -f "$installed_path/glm-launch.sh" ]]; then
-            echo "$installed_path"
+    # Try bash method first
+    if [[ -n "${BASH_SOURCE[0]:-}" ]]; then
+        script_dir="${BASH_SOURCE[0]}"
+    # Try zsh method
+    elif [[ -n "${(%):-%x}" ]]; then
+        script_dir="${(%):-%x}"
+    # Try funcsourcetrace (zsh fallback)
+    elif [[ -n "${funcsourcetrace[1]:-}" ]]; then
+        script_dir="${funcsourcetrace[1]}"
+    fi
+
+    if [[ -n "$script_dir" ]]; then
+        # Get absolute path of script directory
+        script_dir="$(cd "$(dirname "$script_dir")" && pwd)"
+        # Project root is parent of scripts/ directory
+        local project_root="$(dirname "$script_dir")"
+
+        # Validate the path exists and contains glm-launch.sh
+        if [[ -d "$project_root" ]] && \
+           [[ -f "$project_root/glm-launch.sh" ]]; then
+            echo "$project_root"
             return 0
-        else
-            # Path was valid at installation time but no longer exists
-            echo "⚠️  GLM: Installation path no longer exists or missing glm-launch.sh: $installed_path" >&2
-            echo "   Falling back to search..." >&2
         fi
     fi
 
