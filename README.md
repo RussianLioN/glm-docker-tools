@@ -74,6 +74,9 @@ cd claude-code-docker
 # Run interactive setup
 ./setup-secrets.sh
 
+# (Optional) Setup SSH agent forwarding for Git operations
+./scripts/setup-ssh-forwarding.sh
+
 # Launch Claude Code
 ./glm-launch.sh
 ```
@@ -91,6 +94,9 @@ mkdir -p secrets
 # Add your API key
 echo 'GLM_API_KEY=your_key_here' > secrets/.env
 chmod 600 secrets/.env
+
+# (Optional) Setup SSH for Git operations
+ssh-add ~/.ssh/id_ed25519  # or id_rsa
 
 # Launch Claude Code
 ./glm-launch.sh
@@ -147,6 +153,119 @@ export CLAUDE_SKIP_ONBOARDING=true
 **Note**: This sets `hasCompletedOnboarding: true` in `~/.claude/.claude.json` (user-level config), which affects ALL Claude Code projects.
 
 **Requirements**: `jq` must be installed (automatically checked by the script).
+
+---
+
+## 🔑 SSH Agent Forwarding (Git Push из контейнера)
+
+### Зачем это нужно?
+
+Контейнер Claude Code может выполнять операции git (commit, push, pull), но **по умолчанию не имеет доступа к вашим SSH ключам**. SSH Agent Forwarding позволяет контейнеру использовать ваши SSH ключи с хоста **без копирования** внутрь контейнера.
+
+### Автоматическая настройка (Рекомендуется)
+
+Скрипт `glm-launch.sh` **автоматически обнаруживает и настраивает** SSH agent forwarding. Просто убедитесь что SSH агент запущен:
+
+```bash
+# Проверить что SSH агент запущен и ключи загружены
+ssh-add -l
+
+# Если ключи не загружены - добавить их
+ssh-add ~/.ssh/id_ed25519    # или id_rsa
+```
+
+### Ручная настройка (если автоматическая не работает)
+
+#### macOS (Docker Desktop)
+
+```bash
+# 1. Убедиться что SSH агент запущен
+eval "$(ssh-agent -s)"
+
+# 2. Добавить ключи
+ssh-add ~/.ssh/id_ed25519
+
+# 3. Проверить
+ssh-add -l
+# Должен показать: 256 SHA256:... your@email.com (ED25519)
+
+# 4. Проверить подключение к GitHub
+ssh -T git@github.com
+# Должен показать: Hi username! You've successfully authenticated...
+```
+
+#### Linux
+
+```bash
+# 1. Запустить SSH агент (если не запущен)
+eval "$(ssh-agent -s)"
+
+# 2. Добавить ключи
+ssh-add ~/.ssh/id_ed25519
+
+# 3. Проверить переменную SSH_AUTH_SOCK
+echo $SSH_AUTH_SOCK
+# Должен показать путь: /tmp/ssh-XXXXXX/agent.XXXXX
+
+# 4. Проверить подключение к GitHub
+ssh -T git@github.com
+```
+
+### Скрипт для быстрой настройки
+
+Для максимального упрощения используйте специальный скрипт:
+
+```bash
+# Автоматическая настройка SSH agent forwarding
+./scripts/setup-ssh-forwarding.sh
+```
+
+**Что делает скрипт:**
+- ✅ Проверяет установлен ли SSH агент
+- ✅ Проверяет загружены ли ключи
+- ✅ Находит SSH ключи в стандартных locations
+- ✅ Предлагает добавить ключи если они не загружены
+- ✅ Проверяет подключение к GitHub
+- ✅ Показывает детальную диагностику
+
+### Проверка внутри контейнера
+
+После запуска контейнера можно проверить работу SSH forwarding:
+
+```bash
+# Внутри контейнера Claude Code:
+# 1. Проверить что переменная SSH_AUTH_SOCK установлена
+echo $SSH_AUTH_SOCK
+
+# 2. Проверить загруженные ключи
+ssh-add -l
+
+# 3. Проверить подключение к GitHub
+ssh -T git@github.com
+```
+
+### Диагностика проблем
+
+```bash
+# Если git push не работает внутри контейнера:
+./glm-launch.sh --debug
+
+# Внутри контейнера проверить:
+# 1. Переменная SSH_AUTH_SOCK
+env | grep SSH
+
+# 2. Доступ к сокету
+ls -la $SSH_AUTH_SOCK
+
+# 3. Пробное подключение
+ssh -vT git@github.com 2>&1 | grep -i "offering\|authenticating"
+```
+
+### Экспертная оценка
+
+> **13/13 экспертов единогласно** рекомендуют SSH Agent Forwarding как **единственный безопасный способ** работы с git из контейнеров.
+
+📖 **Подробнее:** [Git Access for Ephemeral Containers](./docs/GIT_ACCESS_EPHEMERAL_CONTAINER.md) - полный анализ экспертной панели
 
 ---
 
