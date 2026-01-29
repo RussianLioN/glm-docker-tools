@@ -2,7 +2,193 @@
 
 ---
 
-## 🔄 CURRENT SESSION - 2026-01-15
+## 🔄 CURRENT SESSION - 2026-01-29
+
+**Session Date**: 2026-01-29
+**Session Duration**: P12+B & P13 Verification
+**Primary Focus**: Проверка реализации P12+B (Current-First Architecture) и P13 (Shell Aliases)
+**Completion Status**: ✅ ЗАВЕРШЕНО (Verification)
+
+---
+
+### 🎯 Ключевые достижения сессии
+
+#### ✅ P12+B: Current-First Architecture - УЖЕ РЕАЛИЗОВАН
+
+**Коммит**: `ee366ac` (2026-01-16)
+
+**Архитектура**:
+- `PROJECT_ROOT = $(pwd)` - текущая папка ВСЕГДА является проектом
+- `GLM_LAUNCHER_DIR` - где лежит glm-launch.sh (утилита, отделенная от проекта)
+- Volume mapping: `-v "$PROJECT_ROOT:$PROJECT_ROOT:cached"`
+- Working directory: `-w "$PROJECT_ROOT"`
+
+**Ключевое изменение**:
+- **Раньше**: glm-docker-tools монтировался как `/workspace`
+- **Теперь**: Текущая папка монтируется как `/Users/.../current-project`
+
+**Priority Chain для Settings/Secrets**:
+```
+Priority 1: Current directory (PROJECT_ROOT/.claude/settings.json)
+Priority 2: Launcher directory (GLM_LAUNCHER_DIR/.claude/settings.json)
+Priority 3: Home directory (~/.claude/settings.json)
+```
+
+**Использование**:
+```bash
+# Работает из ЛЮБОГО проекта:
+cd ~/coding/projects/test-project
+~/coding/projects/glm-docker-tools/glm-launch.sh
+
+# PROJECT_ROOT = /Users/.../test-project
+# GLM_LAUNCHER_DIR = /Users/.../glm-docker-tools
+```
+
+**AI-Automated тесты**: ✅ 5/5 PASSED
+- ✅ Syntax validation
+- ✅ Code structure (find_project_root, find_launcher_dir)
+- ✅ Variable usage (PROJECT_ROOT, WORKSPACE, GLM_LAUNCHER_DIR)
+- ✅ Volume mapping
+- ✅ Integration points
+
+---
+
+#### ✅ P13: Shell Aliases - УЖЕ РЕАЛИЗОВАН
+
+**Коммит**: `ee366ac` (2026-01-16)
+
+**Архитектура**: Hybrid Fallback (3-level priority chain)
+
+**Команды**:
+```bash
+glm              # Стандартный запуск (auto-delete)
+glm-debug        # Debug режим (persistent + shell)
+glm-no-del       # No-delete режим (persistent)
+glm-help         # Справка
+```
+
+**Hybrid Fallback**:
+```
+Level 1: GLM_PROJECT_ROOT (env var) - highest priority
+Level 2: Hardcoded path from installation (setup-aliases.sh)
+Level 3: Upward search (fallback - ищет glm-launch.sh вверх по директориям)
+```
+
+**Файлы**:
+- `scripts/glm-aliases.sh` - Shell functions
+- `scripts/setup-aliases.sh` - Auto-installation
+
+**Installation**:
+```bash
+cd ~/coding/projects/glm-docker-tools
+./scripts/setup-aliases.sh --install
+
+# Auto-detects shell (zsh/bash) and installs to:
+# Zsh:  /usr/local/share/zsh/site-functions/glm
+# Bash: ~/.local/share/bash-completion/completions/glm
+```
+
+**Использование**:
+```bash
+# Работает из ЛЮБОЙ папки:
+cd ~/coding/projects/random-project
+glm
+
+# glm-aliases.sh:
+#   → Находит glm-docker-tools (через hardcoded path)
+#   → Запускает ~/coding/projects/glm-docker-tools/glm-launch.sh
+# glm-launch.sh:
+#   → PROJECT_ROOT = $(pwd) = ~/coding/projects/random-project
+#   → Контейнер видит random-project как проект
+```
+
+**UAT статус**: 📋 Ready for User-Practical Testing (требуется выполнение на хост-системе)
+
+---
+
+#### 📋 Критические находки верификации
+
+1. **P12+B и P13 УЖЕ РЕАЛИЗОВАНЫ** в коммите `ee366ac`
+2. **Архитектура корректна** для работы из ЛЮБЫХ проектов
+3. **AI-Automated тесты PASSED** для P12+B (5/5)
+4. **User-Practical тесты** требуют выполнения на хост-системе (вне Docker)
+
+---
+
+#### 🔗 Связанные документы
+
+- **[P12 UAT Plan](./docs/uat/P12_workspace_independence_uat.md)** - План тестирования P12
+- **[P13 UAT Plan](./docs/uat/P13_shell_aliases_uat.md)** - План тестирования P13
+- **[SCRIPT_LOGIC.md](./docs/SCRIPT_LOGIC.md)** - Полная документация P12+B и P13
+- **[glm-aliases.sh](./scripts/glm-aliases.sh)** - Shell functions
+- **[setup-aliases.sh](./scripts/setup-aliases.sh)** - Auto-installation script
+
+---
+
+### 📊 Статус задач на 2026-01-29
+
+#### ✅ ЗАВЕРШЕННЫЕ задачи:
+
+| ID | Название | Статус | Дата | UAT |
+|----|----------|--------|------|-----|
+| **P1-P7** | Все улучшения (7 шт) | ✅ Complete | 2025-12-26/30 | ✅ PASSED |
+| **P8-P9** | Defensive improvements | ✅ Complete | - | ✅ PASSED |
+| **P10** | Onboarding Bypass Research | ✅ Complete | 2026-01-15 | - |
+| **P12+B** | Current-First Architecture | ✅ Complete | 2026-01-16 | 📋 AI-AUTO PASSED |
+| **P13** | Shell Aliases | ✅ Complete | 2026-01-16 | 📋 Ready for UAT |
+
+#### 📋 В BACKLOG:
+
+| ID | Название | Приоритет | Статус |
+|----|----------|-----------|--------|
+| **P14** | Управление приложениями | ⭐ **ВАЖНЫЙ** | 📋 Запланировано |
+| **P16** | Config Management (.claude.json) | ⭐ **ВАЖНЫЙ** | 📋 Запланировано |
+| **P15** | Автообновление Claude Code | 📋 **НОРМАЛЬНЫЙ** | 📋 Запланировано |
+| **P17** | Мульти-engine Docker автозапуск | 📋 **НОРМАЛЬНЫЙ** | 📋 Запланировано |
+| **P11** | Улучшенный онбординг | 📋 НОРМАЛЬНЫЙ | 📋 Запланировано |
+
+---
+
+### 📦 Коммиты сессии
+
+```bash
+ee366ac - feat(impl): P12+B Current-First Architecture & P13 Shell Aliases
+```
+
+**Всего новых коммитов**: 0 (верификация существующих)
+**Все pushed to**: `origin/main` (pending - requires GitHub PAT)
+
+---
+
+### 🎯 Следующие шаги
+
+**Приоритет 1 - UAT Testing:**
+1. **P12+B User-Practical Tests** - Выполнить на хост-системе
+   - Тест из корня проекта
+   - Тест из поддиректории
+   - Тест из другого проекта (~/coding/projects/test-project)
+
+2. **P13 User-Practical Tests** - Выполнить на хост-системе
+   - Установка aliases: `./scripts/setup-aliases.sh --install`
+   - Тест `glm` из разных папок
+   - Тест `glm-debug` и `glm-no-del`
+
+**Приоритет 2 - Documentation:**
+3. Обновить статус P12+B и P13 в IMPLEMENTATION_PLAN.md
+4. Push изменений в `origin/main` (требует GitHub PAT)
+
+**При желании пользователя:**
+- P14 → P16 → P15 → P17 → P11 (в порядке приоритета)
+
+---
+
+**Статус сессии**: ✅ ЗАВЕРШЕНО (Verification)
+**Дата**: 2026-01-29
+**Следующая задача**: User-Practical UAT для P12+B и P13
+
+---
+
+## 🔄 PREVIOUS SESSION - 2026-01-15
 
 **Session Date**: 2026-01-15
 **Session Duration**: P10 Research + Documentation Correction + Backlog Updates
