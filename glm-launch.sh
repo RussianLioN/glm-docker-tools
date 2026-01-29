@@ -1053,6 +1053,67 @@ run_claude() {
         -e GLM_LAUNCHER_DIR="$GLM_LAUNCHER_DIR"
     )
 
+    # =============================================================================
+    # SSH Agent Forwarding (for git push from container)
+    # Purpose: Enable git operations without storing credentials in container
+    # Expert panel: 13/13 unanimous approval
+    # =============================================================================
+    local ssh_auth_sock="${SSH_AUTH_SOCK:-}"
+    local ssh_forwarding_enabled=false
+
+    # Check for SSH agent socket
+    if [[ -n "$ssh_auth_sock" ]]; then
+        # Verify socket exists and is accessible
+        if [[ -S "$ssh_auth_sock" ]]; then
+            docker_cmd+=(
+                -v "$ssh_auth_sock:$ssh_auth_sock:ro"
+                -e SSH_AUTH_SOCK="$ssh_auth_sock"
+            )
+            ssh_forwarding_enabled=true
+            log_info "🔑 SSH agent forwarding enabled"
+        else
+            log_warning "⚠️  SSH_AUTH_SOCK is set but socket not found: $ssh_auth_sock"
+        fi
+    fi
+
+    # macOS Docker Desktop special case
+    if [[ "$ssh_forwarding_enabled" == "false" ]] && [[ "$OSTYPE" == "darwin"* ]]; then
+        local docker_ssh_socket="/run/host-services/ssh-auth.sock"
+        if [[ -S "$docker_ssh_socket" ]]; then
+            docker_cmd+=(
+                -v "$docker_ssh_socket:/run/host-services/ssh-auth.sock:ro"
+                -e SSH_AUTH_SOCK="/run/host-services/ssh-auth.sock"
+            )
+            ssh_forwarding_enabled=true
+            log_info "🔑 SSH agent forwarding enabled (Docker Desktop for macOS)"
+        fi
+    fi
+
+    # Fallback: Try common ssh-agent socket locations
+    if [[ "$ssh_forwarding_enabled" == "false" ]]; then
+        local common_sockets=(
+            "$HOME/.ssh/agent.sock"
+            "/tmp/ssh-agent.sock"
+            "$XDG_RUNTIME_DIR/ssh-agent.sock"
+        )
+
+        for sock in "${common_sockets[@]}"; do
+            if [[ -S "$sock" ]]; then
+                docker_cmd+=(
+                    -v "$sock:$sock:ro"
+                    -e SSH_AUTH_SOCK="$sock"
+                )
+                ssh_forwarding_enabled=true
+                log_info "🔑 SSH agent forwarding enabled (found socket: $sock)"
+                break
+            fi
+        done
+    fi
+
+    if [[ "$ssh_forwarding_enabled" == "false" ]]; then
+        log_info "ℹ️  SSH agent forwarding not available (git push will require credentials in container)"
+    fi
+
     # Показать команду если dry-run
     if [[ "${DRY_RUN:-false}" == "true" ]]; then
         log_info "Dry run mode. Команда:"
