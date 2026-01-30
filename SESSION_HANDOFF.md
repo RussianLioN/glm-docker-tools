@@ -2,41 +2,52 @@
 
 ---
 
-## 🔄 CURRENT SESSION - 2026-01-30 (Session 3)
+## 🔄 CURRENT SESSION - 2026-01-30 (Session 4)
 
 **Session Date**: 2026-01-30
-**Session Duration**: Documentation Review + Cross-linking + Git Operations
-**Primary Focus**: Организация кроссссылок на Session Summaries + breadcrumbs + commit + push
+**Session Duration**: Native Installation Guide Integration + Expert Evaluation
+**Primary Focus**: Добавление документации по нативной установке + Экспертная оценка P15.1
 **Completion Status**: ✅ ЗАВЕРШЕНО
 
 ---
 
 ### 🎯 Ключевые достижения сессии
 
-#### ✅ Documentation Navigation & Cross-linking
+#### ✅ Documentation Integration - Native Installation Guide
 
-**Создано:**
-1. **SESSIONS.md** - Индекс всех сессий с кросссылками
-   - Ссылка на Session Summaries
-   - Quick Navigation по последним сессиям
-   - breadcrumbs навигация
+**Добавлено:**
+1. **docs/CLAUDE_NATIVE_INSTALLATION_GUIDE.md** - Руководство по нативной установке
+   - Переименовано из "Руководство по установке Claude Code (Нативная вер).md"
+   - Добавлены хлебные крошки: Home > Documentation Index > Native Installation Guide
+   - Добавлена секция "Связанные документы проекта"
+   - Содержит раздел 9: Установка в Docker (Dockerfile, docker-compose)
 
-2. **SESSION_SUMMARY_2026-01-30.md** - Сводка сессии
-   - Breadcrumbs: Home > Session Summaries > 2026-01-30
-   - Полный обзор P12+B, P13, SSH реализаций
-   - Статус всех задач после коммитов
-
-3. **README.md** обновлён
-   - Добавлена секция "📋 Session History"
-   - Ссылка на SESSIONS.md
-   - Ссылка на конкретную сессию
+2. **docs/P15.1_EXPERT_EVALUATION.md** - Экспертная оценка новой задачи
+   - 8 экспертов оценили P15.1 - Native Claude Code in Container
+   - Средний рейтинг: 7.3/10
+   - Рекомендуемый приоритет: ⭐ ВАЖНЫЙ
+   - Расчетное время: 8-12 часов
 
 **Навигационная цепочка:**
 ```
-README.md → SESSIONS.md → SESSION_SUMMARY_2026-01-30.md
-   ↓           ↓                ↓
-Home    Session Index    Session Details
+README.md → docs/index.md → CLAUDE_NATIVE_INSTALLATION_GUIDE.md
+   ↓           ↓                    ↓
+Home    Documentation      Native Installation
 ```
+
+#### ✅ Expert Panel Results
+
+**Задача P15.1 - Update Claude Code to Native Version in Container:**
+
+| Критерий | Оценка | Приоритет |
+|----------|--------|-----------|
+| User Impact | 7.7/10 | HIGH |
+| Maintenance Reduction | 8.3/10 | HIGH |
+| Performance Gains | 8.0/10 | HIGH |
+| Strategic Value | 8.3/10 | HIGH |
+| **OVERALL** | **7.3/10** | **⭐ ВАЖНЫЙ** |
+
+**Рекомендация:** Выполнить после P16 (Config Management), перед P17 (Multi-engine)
 
 ---
 
@@ -44,9 +55,11 @@ Home    Session Index    Session Details
 
 | Файл | Статус | Описание |
 |------|--------|----------|
-| `SESSIONS.md` | ✅ Новый | Индекс сессий |
-| `SESSION_SUMMARY_2026-01-30.md` | ✅ Новый | Сводка с breadcrumbs |
-| `README.md` | ✅ Обновлён | Ссылка на Session History |
+| `docs/CLAUDE_NATIVE_INSTALLATION_GUIDE.md` | ✅ Новый | Руководство по нативной установке |
+| `docs/P15.1_EXPERT_EVALUATION.md` | ✅ Новый | Экспертная оценка P15.1 |
+| `SESSION_HANDOFF.md` | ✅ Обновлён | Session 4 обновлена |
+| `SESSIONS.md` | ✅ Обновлён | Добавлена Session 4 |
+| `SESSION_SUMMARY_2026-01-30_S4.md` | ✅ Новый | Сводка Session 4 |
 
 ---
 
@@ -70,7 +83,8 @@ Home    Session Index    Session Details
 |----|----------|-----------|--------|
 | **P16** | Config Management (.claude.json) | ⭐ **ВАЖНЫЙ** | 📋 Запланировано |
 | **P14** | Управление приложениями | ⭐ **ВАЖНЫЙ** | 📋 Запланировано |
-| **P15** | Автообновление Claude Code | 📋 **НОРМАЛЬНЫЙ** | 📋 Запланировано |
+| **P15.1** | Native Claude Code in Container | ⭐ **ВАЖНЫЙ** | 📋 Оценено экспертами |
+| **P15** | Автообновление Claude Code (оригинальный) | 📋 НОРМАЛЬНЫЙ | 📋 Запланировано |
 | **P17** | Мульти-engine Docker автозапуск | 📋 **НОРМАЛЬНЫЙ** | 📋 Запланировано |
 | **P11** | Улучшенный онбординг | 📋 НОРМАЛЬНЫЙ | 📋 Запланировано |
 
@@ -79,12 +93,14 @@ Home    Session Index    Session Details
 ### 📦 Коммиты сессии
 
 ```bash
-[NEW]    - docs(sessions): Add session index with cross-linking
-[NEW]    - docs(summary): Add 2026-01-30 session summary with breadcrumbs
-[NEW]    - docs(readme): Add session history section to README
+[NEW]    - docs(native): Add native installation guide with cross-linking
+[NEW]    - docs(expert): Add P15.1 expert evaluation (8-panel review)
+[NEW]    - docs(handoff): Update SESSION_HANDOFF.md for Session 4
+[NEW]    - docs(sessions): Add Session 4 to session index
+[NEW]    - docs(summary): Create SESSION_SUMMARY_2026-01-30_S4.md
 ```
 
-**Всего новых файлов**: 3
+**Всего новых/обновленных файлов**: 5
 **Ожидается коммитов**: 1 (aggregate)
 
 ---
@@ -92,21 +108,24 @@ Home    Session Index    Session Details
 ### 🎯 Следующие шаги
 
 **Приоритет 1 - Git Operations:**
-1. **Создать aggregate commit** для всех изменений документации
-2. **Push в origin/main** (требуется GitHub PAT или SSH key)
+1. **Создать aggregate commit** для всех изменений Session 4
+2. **Push в origin/main**
 
 **Приоритет 2 - Бэклог (по желанию):**
-1. **P16** - Config Management (.claude.json) - ⭐ ВАЖНЫЙ
+1. **P16** - Config Management (.claude.json) - ⭐ ВАЖНЫЙ (рекомендуется первым)
 2. **P14** - Управление приложениями - ⭐ ВАЖНЫЙ
-3. **P15** - Автообновление Claude - 📋 НОРМАЛЬНЫЙ
+3. **P15.1** - Native Claude Code in Container - ⭐ ВАЖНЫЙ (после P16)
 4. **P17** - Мульти-engine Docker - 📋 НОРМАЛЬНЫЙ
+5. **P11** - Улучшенный онбординг - 📋 НОРМАЛЬНЫЙ
 
 ---
 
 ### 🔗 Связанные документы
 
 - **[📚 Session Summaries](./SESSIONS.md)** - Индекс всех сессий
-- **[📋 Session 2026-01-30](./SESSION_SUMMARY_2026-01-30.md)** - Сводка текущей сессии
+- **[📋 Session 2026-01-30 (S4)](./SESSION_SUMMARY_2026-01-30_S4.md)** - Сводка текущей сессии
+- **[📖 Native Installation Guide](./docs/CLAUDE_NATIVE_INSTALLATION_GUIDE.md)** - Руководство по нативной установке
+- **[🎯 P15.1 Expert Evaluation](./docs/P15.1_EXPERT_EVALUATION.md)** - Экспертная оценка задачи
 - **[🏠 Home](./README.md)** - Главная документация
 
 ---
@@ -114,6 +133,10 @@ Home    Session Index    Session Details
 **Статус сессии**: ✅ ЗАВЕРШЕНО
 **Дата**: 2026-01-30
 **Следующая задача**: Git commit + push
+
+---
+
+## 🔄 PREVIOUS SESSION - 2026-01-30 (Session 3)
 
 ---
 
