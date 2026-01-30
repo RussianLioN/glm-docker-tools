@@ -570,12 +570,21 @@ docker exec -it claude-debug du -sh /root/.claude
 - **[🔄 Container Lifecycle Management](./docs/CONTAINER_LIFECYCLE_MANAGEMENT.md)** - **NEW** - Container modes (--debug, --no-del, auto-delete)
 - **[📝 Configuration Template](./.claude/settings.template.json)** - Safe settings template
 - **[🔧 Development Scripts](./scripts/)** - Complete scripts documentation with usage examples
-  - [glm-launch.sh](./scripts/glm-launch.sh) - Main launcher with lifecycle modes (--debug, --no-del, auto-delete)
-  - [test-container-lifecycle.sh](./scripts/test-container-lifecycle.sh) - Lifecycle testing and validation
-  - [debug-mapping.sh](./scripts/debug-mapping.sh) - Volume mapping diagnostics
-  - [shell-access.sh](./scripts/shell-access.sh) - Convenient shell access for stopped containers
-  - [test-claude.sh](./scripts/test-claude.sh) - Claude Code functionality tests
+
+#### 📋 Session History
+- **[📚 Session Summaries](./SESSIONS.md)** - Complete history of development sessions
+  - [Session 2026-01-30](./SESSION_SUMMARY_2026-01-30.md) - P12+B, P13, SSH Documentation Review
+
+#### 🏗️ Architecture & Design
+- **[🏗️ Architecture Overview](./docs/DOCKER_MAPPING_DIAGRAM.md)** - System design diagrams
+- **[🔍 Expert Analysis](./docs/EXPERT_ANALYSIS.md)** - Technical deep-dive and insights
+- **[📊 Multi-Container Analysis](./docs/MULTI_CONTAINER_RISK_ANALYSIS.md)** - Container strategies
 - **[📝 Nano Editor Setup](./docs/NANO_EDITOR_SETUP.md)** - External editor integration
+
+#### 🔧 Development Scripts
+- **[glm-launch.sh](./glm-launch.sh)** - Main launcher with lifecycle modes (--debug, --no-del, auto-delete)
+- **[shell-access.sh](./scripts/shell-access.sh)** - Convenient shell access for stopped containers
+- **[test-claude.sh](./scripts/test-claude.sh)** - Claude Code functionality tests
 
 #### 🐳 Docker Infrastructure
 - **[🐳 Dockerfile](./Dockerfile)** - Current production container definition
